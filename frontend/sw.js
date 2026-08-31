@@ -10,15 +10,15 @@
  *   HTML viejo, y la corrección que se publicó ayer no llega. Ese fue el
  *   comportamiento hasta esta versión.
  *
- * - El CSS, las imágenes y el manifest van por CACHE PRIMERO con revalidación
- *   en segundo plano. Cambian poco y son los que hacen que la primera pantalla
- *   se dibuje al instante.
+ * - Las imágenes, las fuentes y el manifest van por CACHE PRIMERO con
+ *   revalidación en segundo plano. Casi nunca cambian y son los que hacen que
+ *   la primera pantalla se dibuje al instante.
  *
  * Nada de esto toca las llamadas a Apps Script ni a Firebase: se descartan por
  * origen antes de decidir cualquier estrategia.
  */
 
-const CACHE_NAME = 'app-turno-cache-v2';
+const CACHE_NAME = 'app-turno-cache-v3';
 
 const RECURSOS_ESTATICOS = [
   './',
@@ -68,12 +68,22 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-/** El HTML y el JS son el código de la app: siempre se prefiere el de la red. */
+/**
+ * HTML, JS y CSS son el código de la app: siempre se prefiere el de la red.
+ *
+ * El CSS entra en esta bolsa aunque sea tentador cachearlo: con revalidación en
+ * segundo plano, un cambio de estilo aparece recién en la SEGUNDA carga, y el
+ * síntoma es el peor posible — se publica un arreglo, se abre la página, y sigue
+ * viéndose el problema. Lo que se gana cacheándolo es una request de un archivo
+ * chico; lo que se pierde es poder confiar en lo que uno ve.
+ */
 function esCodigoDeLaApp(peticion, url) {
   return peticion.mode === 'navigate' ||
     peticion.destination === 'document' ||
     peticion.destination === 'script' ||
-    url.pathname.endsWith('.html');
+    peticion.destination === 'style' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.css');
 }
 
 function guardarEnCache(peticion, respuesta) {
