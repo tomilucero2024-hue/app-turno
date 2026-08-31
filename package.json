@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node tests/disponibilidad.test.js && node tests/router.test.js && node tests/ui_helpers.test.js",
+    "test": "node tests/disponibilidad.test.js && node tests/router.test.js && node tests/clave_alta.test.js && node tests/ui_helpers.test.js",
     "push": "clasp push",
     "pull": "clasp pull --rootDir backend"
   }

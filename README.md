@@ -70,10 +70,12 @@ Apps Script evalúa los archivos en orden alfabético dentro de un único ámbit
 npm test
 ```
 
-No hay dependencias: son dos scripts de Node.
+No hay dependencias: son cuatro scripts de Node.
 
 - `tests/disponibilidad.test.js` prueba el cálculo de horarios (grilla, horario partido, solapamientos, bloqueos, antelación mínima). Es posible porque `02_Disponibilidad.js` no toca ningún servicio de Apps Script.
 - `tests/router.test.js` carga todo el backend en un sandbox con los servicios de Google simulados y verifica que el proyecto compile, que el router resuelva todos sus handlers y que ningún camino de error rompa el contrato `{ok, data|error}`.
+- `tests/clave_alta.test.js` cubre la clave que autoriza abrir una agenda: qué se rechaza, el vale de un solo uso, el límite de intentos y que la clave no aparezca ni en las respuestas ni en el frontend. Es el único secreto que se compara en un endpoint sin autenticar, y un error ahí no rompe nada visible — solo deja el alta abierta.
+- `tests/ui_helpers.test.js` prueba los helpers del frontend que se pueden correr fuera del navegador: exportación a `.ics` y CSV, links de Google Calendar y la máscara de teléfono.
 
 ## Puesta en marcha
 
