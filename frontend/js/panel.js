@@ -25,6 +25,12 @@
 
   function mostrarVista(nombre) {
     Object.entries(vistas).forEach(([clave, nodo]) => nodo.classList.toggle('oculto', clave !== nombre));
+
+    // La navegación inferior solo tiene sentido con el panel abierto: en las
+    // vistas de ingreso y de alta no hay adónde navegar, y como es `position:
+    // fixed` se dibujaba encima del formulario.
+    const navInferior = $('#bottom-nav');
+    if (navInferior) navInferior.classList.toggle('oculto', nombre !== 'panel');
   }
 
   /** Cliente autenticado de la API, con un token recién pedido. */
@@ -60,6 +66,7 @@
     }
     prepararIngreso();
     prepararAlta();
+    prepararNavegacionInferior();
 
     Auth.resultadoRedireccion().catch((err) => {
       pintar($('#error-ingreso'), UI.aviso(Auth.mensajeDeError(err)));
@@ -121,7 +128,7 @@
           btnSubmit.textContent = 'Crear cuenta';
           btnOlvide.classList.add('oculto');
           campoClaveAdmin?.classList.remove('oculto');
-          if (entradaClaveAdmin) entradaClaveAdmin.required = true;
+          if (entradaClaveAdmin) entradaClaveAdmin.required = Boolean(CONFIG.CLAVE_ADMIN);
         } else {
           btnSubmit.textContent = 'Ingresar';
           btnOlvide.classList.remove('oculto');
@@ -142,11 +149,17 @@
 
       if (modo === 'crear') {
         const claveAdminIngresada = (entradaClaveAdmin?.value || '').trim();
-        const claveAdminEsperada = CONFIG.CLAVE_ADMIN || 'admin2026';
-        if (claveAdminIngresada !== claveAdminEsperada) {
+        const claveAdminEsperada = CONFIG.CLAVE_ADMIN;
+        if (claveAdminEsperada && claveAdminIngresada !== claveAdminEsperada) {
           pintar($('#error-ingreso'), UI.aviso('Clave de administrador incorrecta. Solo el administrador puede autorizar nuevas cuentas.'));
           return;
         }
+      }
+
+      if (modo === 'crear') {
+        try {
+          sessionStorage.setItem('clave_admin_valida', (entradaClaveAdmin?.value || '').trim());
+        } catch (err) {}
       }
 
       await conCarga(btnSubmit, async () => {
@@ -167,8 +180,8 @@
 
       if (modo === 'crear') {
         const claveAdminIngresada = (entradaClaveAdmin?.value || '').trim();
-        const claveAdminEsperada = CONFIG.CLAVE_ADMIN || 'admin2026';
-        if (claveAdminIngresada !== claveAdminEsperada) {
+        const claveAdminEsperada = CONFIG.CLAVE_ADMIN;
+        if (claveAdminEsperada && claveAdminIngresada !== claveAdminEsperada) {
           pintar($('#error-ingreso'), UI.aviso('Ingresá la clave de administrador correcta arriba antes de continuar con Google.'));
           entradaClaveAdmin?.focus();
           return;
@@ -202,6 +215,19 @@
     });
   }
 
+  /**
+   * Engancha la navegación inferior una sola vez.
+   *
+   * Antes esto vivía dentro de `abrirPanel()`, que corre después de resolver la
+   * sesión: entre que la página carga y eso ocurre, los botones estaban a la
+   * vista y no respondían.
+   */
+  function prepararNavegacionInferior() {
+    UI.$$('#bottom-nav .nav-item').forEach((boton) => {
+      boton.addEventListener('click', () => irA(boton.dataset.tab));
+    });
+  }
+
   function prepararAlta() {
     let tipo = 'independiente';
 
@@ -216,13 +242,17 @@
       e.preventDefault();
       const nombre = $('#entrada-negocio').value.trim();
       const claveAdminIngresada = ($('#entrada-alta-clave-admin')?.value || '').trim();
-      const claveAdminEsperada = CONFIG.CLAVE_ADMIN || 'admin2026';
+      const claveAdminEsperada = CONFIG.CLAVE_ADMIN;
 
       if (!nombre) return;
 
       pintar($('#error-alta'), []);
 
-      if (claveAdminIngresada !== claveAdminEsperada) {
+      // Comprobación local: solo evita una ida y vuelta al backend cuando la
+      // clave está obviamente mal. La que autoriza de verdad es la del servidor
+      // (`exigirClaveDeAlta_`), porque esta corre en el navegador del usuario y
+      // se saltea desde la consola en dos segundos.
+      if (claveAdminEsperada && claveAdminIngresada !== claveAdminEsperada) {
         pintar($('#error-alta'), UI.aviso('Clave de administrador incorrecta. Solo el administrador puede autorizar la apertura de una nueva agenda.'));
         return;
       }
@@ -230,7 +260,7 @@
       await conCarga($('#btn-alta'), async () => {
         try {
           const api = await dueno();
-          await api.registrarCuenta(tipo, nombre);
+          await api.registrarCuenta(tipo, nombre, claveAdminIngresada);
           estado.perfil = await api.getPerfilCuenta();
           await recargarNegocio();
           abrirPanel();
@@ -320,10 +350,9 @@
     hasta.addEventListener('change', aplicar);
 
     return el('div', { clase: 'tarjeta tarjeta--compacta pila pila--sm' }, [
-      el('div', { clase: 'fila fila--envolver' }, atajos.map(([texto, d, h]) =>
+      el('div', { clase: 'filter-chips' }, atajos.map(([texto, d, h]) =>
         el('button', {
-          clase: 'boton boton--chico ' +
-            (rango.desde === d && rango.hasta === h ? 'boton--primario' : 'boton--secundario'),
+          clase: 'chip-item' + (rango.desde === d && rango.hasta === h ? ' active' : ''),
           type: 'button', texto,
           onClick: () => alCambiar({ desde: d, hasta: h })
         }))),
@@ -405,6 +434,21 @@
     estado.seccion = id;
     UI.$$('#nav-secciones .nav-pildora__item').forEach((boton, i) =>
       boton.setAttribute('aria-selected', String(SECCIONES[i].id === id)));
+
+    UI.$$('#bottom-nav .nav-item').forEach((boton) => {
+      boton.classList.toggle('active', boton.dataset.tab === id);
+    });
+
+    // La píldora seleccionada puede quedar fuera de la franja visible: en un
+    // celular entran tres de las siete secciones. Sin esto, tocar "Ajustes" en
+    // la navegación inferior deja la píldora activa fuera de pantalla y parece
+    // que no se seleccionó nada.
+    const activa = $('#nav-secciones [aria-selected="true"]');
+    if (activa) {
+      try {
+        activa.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      } catch (err) {}
+    }
 
     const sec = SECCIONES.find((s) => s.id === id);
     if (sec && window.PanelModulos && window.PanelModulos[sec.modulo]) {

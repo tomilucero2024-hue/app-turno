@@ -288,8 +288,14 @@
   color: var(--texto-tenue);
 }
 
+/* Los 16px NO son estéticos y no se pueden bajar: Safari en iOS hace zoom
+   automático sobre cualquier campo con letra menor a 16px al enfocarlo, y
+   después no lo deshace. En el formulario de reserva eso pasa justo al tocar
+   "Tu nombre", con el resumen ya cargado, y desarma la pantalla. El resto de la
+   app sigue en los 15px del body. */
 .entrada {
   width: 100%;
+  font-size: 16px;
   padding: 12px 15px;
   border-radius: var(--r-md);
   border: 1px solid var(--borde);
@@ -414,30 +420,34 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
   box-shadow: var(--halo-oro);
 }
 
-/* Tira horizontal de días */
+/* Tira horizontal de días (carrusel táctil fluido) */
 .dias {
   display: flex;
-  gap: var(--e2);
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: var(--e2);
-  scroll-snap-type: x proximity;
+  padding-block: 2px 8px;
+  padding-inline: 2px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
 .dia {
-  flex: 0 0 auto;
-  width: 68px;
+  flex: 0 0 62px;
+  width: 62px;
+  min-width: 62px;
   padding: 10px 4px;
   border-radius: var(--r-md);
   border: 1px solid var(--borde);
   background: var(--vidrio-medio);
   color: var(--texto);
   cursor: pointer;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   transition: all var(--transicion);
+  text-align: center;
 }
 .dia:hover { border-color: var(--borde-fuerte); background: var(--vidrio-alto); }
-.dia__semana { display: block; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--texto-tenue); }
-.dia__numero { display: block; font-family: var(--fuente-titulo); font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+.dia__semana { display: block; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-tenue); }
+.dia__numero { display: block; font-family: var(--fuente-titulo); font-size: 1.25rem; font-weight: 700; line-height: 1.2; margin-block: 2px; }
 .dia__mes    { display: block; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-tenue); }
 .dia[aria-pressed="true"] {
   background: linear-gradient(160deg, var(--oro-400), var(--oro-600));
@@ -452,18 +462,33 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
    7. Barra superior y navegación en píldora
    ========================================================================== */
 
+/* Instalada como PWA en iOS con la barra de estado translúcida, el contenido
+   arranca detrás del reloj. El `env()` de arriba lo empuja hacia abajo; en el
+   navegador normal vale 0 y no cambia nada. */
 .barra {
   position: sticky;
   top: 0;
   z-index: 30;
-  padding-block: var(--e3);
+  padding-top: calc(var(--e3) + env(safe-area-inset-top));
+  padding-bottom: var(--e3);
   background: rgba(20, 20, 20, 0.55);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-bottom: 1px solid var(--borde);
 }
 
-.marca { display: inline-flex; align-items: center; gap: var(--e2); }
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  /* La barra es sticky: cada renglón que gana se lo saca a la pantalla para
+     siempre. Con un nombre largo ("Barbería Central Palermo") en 375px pasaba a
+     tres líneas y se comía 100px de alto fijo. El nombre se corta con puntos
+     suspensivos y la barra queda en un renglón, siempre. */
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
 .marca__sello {
   display: grid;
   place-items: center;
@@ -489,6 +514,10 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
   font-weight: 700;
   letter-spacing: -0.01em;
   font-size: 1rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* La píldora de navegación del sistema de referencia. */
@@ -505,6 +534,17 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
   scrollbar-width: none;
 }
 .nav-pildora::-webkit-scrollbar { display: none; }
+
+/* En móvil no entran las siete secciones y la barra no tiene barra de scroll:
+   sin esta señal, "Bloqueos" y "Lista negra" simplemente no existen para quien
+   usa el panel desde el celular. El degradado del borde derecho deja la última
+   pestaña a medio desvanecer, que es la manera estándar de decir "seguí". */
+@media (max-width: 768px) {
+  .nav-pildora {
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+  }
+}
 
 .nav-pildora__item {
   display: inline-flex;
@@ -808,7 +848,11 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
 
 .dialogo {
   width: min(460px, 100%);
+  /* `dvh` mide el viewport que queda con la barra del navegador desplegada; con
+     `vh` el diálogo se dimensiona contra la pantalla completa y el final del
+     formulario queda debajo de la barra de direcciones. */
   max-height: 88vh;
+  max-height: 88dvh;
   overflow-y: auto;
   animation: entrar-abajo 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -843,10 +887,15 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
 .seccion-paso { transition: opacity var(--transicion); }
 .seccion-paso[data-bloqueada="true"] { opacity: 0.4; pointer-events: none; }
 
-/* Resumen fijo abajo en móvil: el equivalente al carrito de una tienda. */
+/* En pantalla ancha el resumen acompaña el scroll de los pasos. En móvil pasa a
+   `position: static` (ver la sección Responsive) y queda debajo de la grilla de
+   horarios: ahí no puede quedarse pegado sin tapar medio flujo, porque además
+   del resumen contiene el nombre, el teléfono y el botón de confirmar. Lo que
+   evita que quede enterrado es el scroll automático que hace `reserva.js` al
+   elegir la hora. */
 .resumen {
   position: sticky;
-  top: 88px;
+  top: calc(var(--alto-barra) + var(--e5));
 }
 
 .codigo-ticket {
@@ -972,12 +1021,374 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
   .item__acciones { margin-left: auto; }
 }
 
-/* Safari en iOS aplica backdrop-filter, pero si el navegador no lo soporta
-   las tarjetas quedarían casi invisibles sobre la aurora. Este bloque les
-   devuelve un fondo sólido en ese caso. */
+/* Objetivos táctiles.
+   Se enganchan a `pointer: coarse` y no a un ancho: lo que importa no es que la
+   pantalla sea chica sino que se toque con el dedo, y un dedo necesita unos
+   44px. Los botones "chicos" del sistema quedaban en 36px y los de icono en
+   32px — y los de icono son justamente los cinco que se apiñan en cada turno de
+   la agenda, la acción más repetida del dueño. */
+@media (pointer: coarse) {
+  .boton { min-height: 44px; }
+  .boton--chico { padding: 10px 16px; min-height: 44px; }
+  .boton-ico { width: 44px; height: 44px; }
+  .boton-ico--chico { width: 40px; height: 40px; }
+  .chip-item { min-height: 40px; display: inline-flex; align-items: center; }
+  .nav-pildora__item { min-height: 44px; }
+  .horario { min-height: 44px; }
+}
+
+/* Si el navegador no soporta `backdrop-filter`, las superficies de vidrio
+   —definidas con un blanco al 3-8% de opacidad— quedan prácticamente invisibles
+   sobre el fondo oscuro: la tarjeta desaparece y solo se ve el texto flotando.
+   Estos fondos opacos son el plan B para esos navegadores (WebViews viejas de
+   Android, sobre todo). No se aplican a nadie más. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tarjeta, .barra, .tostada, .nav-pildora {
-    background: rgba(33, 33, 33, 0.94);
+  .tarjeta      { background: var(--bg-surface); }
+  .panel-tinta  { background: var(--bg-surface-elevated); }
+  .barra        { background: rgba(11, 13, 19, 0.98); }
+  .boton--secundario { background: var(--bg-surface-elevated); }
+  .entrada      { background: var(--bg-canvas); }
+  .tostada      { background: var(--bg-surface-elevated); }
+  .velo         { background: rgba(10, 10, 10, 0.9); }
+  .nav-pildora  { background: var(--bg-surface); }
+  .bottom-nav   { background: rgba(16, 19, 28, 1); }
+}
+/* ==========================================================================
+   14. Componentes Dashboard SaaS Moderno (Hero Metrics, Timeline, Badges, Bottom Nav)
+   ========================================================================== */
+
+/* a) Hero Card / Métricas */
+.hero-card {
+  background: linear-gradient(145deg, var(--bg-surface), var(--bg-surface-elevated));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--e4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.hero-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, var(--brand-accent-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.hero-card__label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.hero-card__amount {
+  font-family: var(--fuente-titulo);
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem);
+  font-weight: 700;
+  color: var(--brand-accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--e2);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--border-subtle);
+}
+.metric-box {
+  background: rgba(11, 13, 19, 0.45);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-button);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.metric-box__title {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.metric-box__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* b) Chips de filtrado rápido */
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.filter-chips::-webkit-scrollbar { display: none; }
+.chip-item {
+  padding: 7px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-badge);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transicion);
+}
+.chip-item:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+.chip-item.active {
+  background: var(--brand-accent);
+  color: #0B0D13;
+  border-color: var(--brand-accent);
+  font-weight: 600;
+  box-shadow: 0 2px 10px var(--brand-accent-glow);
+}
+
+/* c) Tarjeta de Turno / Timeline */
+/* La tarjeta se arma con áreas y no con columnas sueltas porque en móvil
+   cambia el ACOMODO, no los tamaños: la columna de acciones pasa de estar al
+   costado a ocupar su propio renglón. Con `auto` al costado, el badge más los
+   cinco botones se llevaban 266px de los 343 disponibles y `.turn-details`
+   —que tiene `min-width: 0`— colapsaba a cero: el nombre del cliente, el
+   servicio y el precio desaparecían de la pantalla del dueño. */
+.turn-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-areas: "hora detalle meta";
+  align-items: center;
+  gap: 12px;
+  transition: transform var(--transicion), border-color var(--transicion), background var(--transicion);
+  position: relative;
+}
+.turn-card:hover {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-accent);
+}
+.turn-card--cancelado {
+  opacity: 0.5;
+}
+.turn-time {
+  grid-area: hora;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 13, 19, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  padding: 6px 4px;
+}
+.turn-time__hour {
+  font-family: var(--fuente-titulo);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--brand-accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.turn-time__duration {
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.turn-details {
+  grid-area: detalle;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.turn-client {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.turn-service {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.turn-meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Los turnos de un mismo día. El JS ya pintaba esta clase pero no existía acá,
+   así que las tarjetas quedaban pegadas una contra la otra sin separación. */
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+
+/* Badges de Estado */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-badge);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.status-badge--confirmado {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ADE80;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+.status-badge--pendiente {
+  background: rgba(234, 179, 8, 0.12);
+  color: #FACC15;
+  border: 1px solid rgba(250, 204, 21, 0.2);
+}
+.status-badge--completado {
+  background: rgba(96, 165, 250, 0.12);
+  color: #93C5FD;
+  border: 1px solid rgba(147, 197, 253, 0.2);
+}
+.status-badge--cancelado, .status-badge--no_asistio {
+  background: rgba(239, 68, 68, 0.12);
+  color: #FCA5A5;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* d) Bottom Nav Fijo en Celular con Safe Area
+   El número de columnas tiene que coincidir con la cantidad de `.nav-item` que
+   hay en panel.html: con cinco ítems en cuatro columnas, "Ajustes" caía a un
+   segundo renglón y la barra pasaba de 61px a 122px de alto, tapando contenido.
+   Si algún día se agrega o se saca una pestaña, este número se toca también.
+
+   El `--alto-nav-inferior` existe para que el padding inferior del panel y la
+   posición de las tostadas salgan del mismo valor y no de tres números sueltos
+   que se desincronizan. */
+:root { --alto-nav-inferior: 64px; }
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: rgba(16, 19, 28, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding-top: 8px;
+  /* El segundo valor de `env()` es el fallback para navegadores que no conocen
+     la variable, NO para los que la conocen y la resuelven a 0. En un iPhone
+     resuelve a 0 salvo que el viewport declare `viewport-fit=cover`, que es lo
+     que ahora hacen index.html y panel.html; el `max()` cubre el resto. */
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  padding: 4px 0;
+  transition: color var(--transicion);
+  position: relative;
+}
+.nav-item svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--transicion);
+}
+.nav-item span {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.nav-item.active {
+  color: var(--brand-accent);
+}
+.nav-item.active svg {
+  transform: translateY(-2px);
+}
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  width: 20px;
+  height: 2px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+  box-shadow: 0 1px 8px var(--brand-accent);
+}
+
+/* Adaptaciones Desktop / Mobile */
+@media (min-width: 769px) {
+  .bottom-nav {
+    display: none !important;
   }
-  .panel-tinta { background: rgba(26, 26, 26, 0.96); }
+}
+@media (max-width: 768px) {
+  #vista-panel {
+    padding-bottom: calc(var(--alto-nav-inferior) + env(safe-area-inset-bottom) + var(--e5));
+  }
+
+  /* Las acciones bajan a su propio renglón. Es la única forma de que el nombre
+     del cliente conserve ancho real en una pantalla de 375px. */
+  .turn-card {
+    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-areas:
+      "hora detalle"
+      "meta meta";
+    padding: 10px 12px;
+    gap: 8px 10px;
+  }
+  .turn-meta {
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  /* Las tostadas salen por encima de la navegación en vez de quedar detrás. */
+  .tostadas {
+    bottom: calc(var(--alto-nav-inferior) + env(safe-area-inset-bottom) + var(--e3));
+  }
 }

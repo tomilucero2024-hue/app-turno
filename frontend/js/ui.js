@@ -206,13 +206,46 @@ const UI = (() => {
 
   // --- Diálogos -------------------------------------------------------------
 
+  /** Cuántos diálogos hay abiertos: el scroll del fondo se libera con el último. */
+  let dialogosAbiertos = 0;
+
+  /**
+   * Congela el scroll del documento mientras haya un diálogo abierto.
+   *
+   * Sin esto, en iOS el dedo arrastra la página de atrás en vez del diálogo y al
+   * cerrarlo la pantalla quedó en otro lado. Se guarda la posición y se repone
+   * al cerrar, porque `position: fixed` sobre el body la pierde.
+   */
+  function bloquearScrollDeFondo() {
+    dialogosAbiertos += 1;
+    if (dialogosAbiertos > 1) return;
+    const y = window.scrollY;
+    document.body.dataset.scrollCongelado = String(y);
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${y}px`;
+    document.body.style.width = '100%';
+  }
+
+  function liberarScrollDeFondo() {
+    dialogosAbiertos = Math.max(0, dialogosAbiertos - 1);
+    if (dialogosAbiertos > 0) return;
+    const y = Number(document.body.dataset.scrollCongelado || 0);
+    delete document.body.dataset.scrollCongelado;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, y);
+  }
+
   /**
    * Abre un diálogo modal. Devuelve una función para cerrarlo.
    * Se cierra con Escape o tocando fuera; el foco entra en el primer control
    * para que sea usable con teclado.
    */
   function dialogo({ titulo, cuerpo, acciones = [], alCerrar = null }) {
-    const panel = el('div', { clase: 'panel-tinta dialogo', role: 'dialog', 'aria-modal': 'true' }, [
+    const panel = el('div', {
+      clase: 'panel-tinta dialogo', role: 'dialog', 'aria-modal': 'true', tabindex: '-1'
+    }, [
       el('div', { clase: 'pila' }, [
         el('div', { clase: 'fila fila--sep' }, [
           el('h2', { clase: 'titular', style: 'font-size:1.2rem', texto: titulo }),
@@ -237,12 +270,21 @@ const UI = (() => {
       cerrado = true;
       document.removeEventListener('keydown', alTeclado);
       velo.remove();
+      liberarScrollDeFondo();
       if (alCerrar) alCerrar();
     }
 
     document.addEventListener('keydown', alTeclado);
+    bloquearScrollDeFondo();
     document.body.append(velo);
-    ($('input, select, textarea, button', panel) || panel).focus();
+
+    // El foco se busca DENTRO del cuerpo, no en el panel entero: la X de cerrar
+    // está antes en el DOM y se la llevaba siempre. Si el cuerpo no tiene ningún
+    // control, el foco queda en el panel para que Escape siga funcionando.
+    const primerControl = cuerpo && cuerpo.querySelector
+      ? cuerpo.querySelector('input:not([type=hidden]), select, textarea, button')
+      : null;
+    (primerControl || panel).focus();
 
     return cerrar;
   }
@@ -318,6 +360,19 @@ const UI = (() => {
 
   const hoyIso = () => aIso(new Date());
 
+  /**
+   * Hora local actual como "HH:mm".
+   *
+   * La agenda la compara como cadena contra `turno.hora`, que el backend guarda
+   * en ese mismo formato. Comparar cadenas "HH:mm" ordena igual que comparar
+   * minutos, asi que no hace falta convertir nada.
+   */
+  function ahoraHora() {
+    const f = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(f.getHours())}:${p(f.getMinutes())}`;
+  }
+
   function sumarDias(iso, dias) {
     const f = aFechaLocal(iso);
     f.setDate(f.getDate() + dias);
@@ -390,26 +445,59 @@ const UI = (() => {
     return el('span', { clase: `insignia insignia--${estado}`, texto: ESTADOS[estado] || estado });
   }
 
-  /** Teléfono en formato legible; el backend guarda solo dígitos. */
-  function telefono(valor) {
-    const d = String(valor || '').replace(/\D/g, '');
-    if (d.length === 10) return `${d.slice(0, 3)} ${d.slice(3, 6)}-${d.slice(6)}`;
-    if (d.length === 11) return `${d.slice(0, 4)} ${d.slice(4, 7)}-${d.slice(7)}`;
-    return d;
+  /**
+   * Da formato a un teléfono argentino a partir de sus dígitos.
+   *
+   * Diez dígitos son código de área de dos más ocho ("11 5555-1234"); once son
+   * un área de tres más ocho ("351 555-1234" con el 9 de móvil adelante). Es la
+   * única función que decide el formato: la máscara del input y el texto que se
+   * muestra en la agenda salen de acá, así que no pueden discrepar.
+   */
+  function formatearTelefono(valor) {
+    const d = String(valor || '').replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 2) return d;
+    if (d.length <= 6) return `${d.slice(0, 2)} ${d.slice(2)}`;
+    if (d.length <= 10) return `${d.slice(0, 2)} ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `${d.slice(0, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
   }
 
-  /** Aplica máscara en tiempo real en un input de teléfono (ej. 11 2345-6789) */
+  /** Teléfono en formato legible; el backend guarda solo dígitos. */
+  const telefono = (valor) => formatearTelefono(valor);
+
+  /**
+   * Aplica la máscara en tiempo real sobre un input de teléfono.
+   *
+   * Reescribir `input.value` manda el cursor al final, y en un celular eso hace
+   * imposible corregir un dígito del medio: el dedo toca la mitad del número y
+   * la siguiente tecla aparece al final. Por eso se cuenta cuántos dígitos había
+   * a la izquierda del cursor y se lo repone después del mismo dígito, ya con
+   * los separadores nuevos.
+   */
   function aplicarMascaraTelefono(input) {
     if (!input) return;
+
     input.addEventListener('input', () => {
-      const valorLimpio = input.value.replace(/\D/g, '').slice(0, 11);
-      let formateado = valorLimpio;
-      if (valorLimpio.length > 6) {
-        formateado = `${valorLimpio.slice(0, 2)} ${valorLimpio.slice(2, 6)}-${valorLimpio.slice(6)}`;
-      } else if (valorLimpio.length > 2) {
-        formateado = `${valorLimpio.slice(0, 2)} ${valorLimpio.slice(2)}`;
-      }
+      const anterior = input.value;
+      const cursor = input.selectionStart === null ? anterior.length : input.selectionStart;
+      const digitosALaIzquierda = anterior.slice(0, cursor).replace(/\D/g, '').length;
+
+      const formateado = formatearTelefono(anterior);
+      if (formateado === anterior) return;
       input.value = formateado;
+
+      let contados = 0;
+      let posicion = digitosALaIzquierda === 0 ? 0 : formateado.length;
+      for (let i = 0; i < formateado.length; i++) {
+        if (/\d/.test(formateado[i])) contados++;
+        if (contados === digitosALaIzquierda) { posicion = i + 1; break; }
+      }
+
+      try {
+        input.setSelectionRange(posicion, posicion);
+      } catch (err) {
+        // Algunos navegadores no lo permiten en inputs type="tel"; el valor ya
+        // quedó bien y perder el cursor es preferible a romper el tipeo.
+      }
     });
   }
 
@@ -501,7 +589,8 @@ const UI = (() => {
     $, $$, el, ico, pintar, esqueletos, esqueletoDe, vacio, aviso,
     tostada, dialogo, confirmar, conCarga, mensajeDeError,
     aFechaLocal, aIso, hoyIso, sumarDias, partesDeFecha, fechaLarga, fechaRelativa,
-    precio, duracion, sumarMinutos, insignia, telefono, parametro,
+    precio, duracion, sumarMinutos, insignia, telefono, formatearTelefono, parametro,
+    ahoraHora,
     aplicarMascaraTelefono, linkGoogleCalendar, descargarIcs, descargarCsv,
     ESTADOS, DIAS_CORTOS, DIAS_LARGOS
   };

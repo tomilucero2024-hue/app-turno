@@ -164,8 +164,13 @@ const API = (() => {
     conToken: (token) => ({
       getPerfilCuenta: () => post('getPerfilCuenta', { token }),
       actualizarPerfilCuenta: (config) => post('actualizarPerfilCuenta', { token, ...config }),
-      registrarCuenta: (tipo, nombreNegocio) =>
-        post('registrarCuenta', { token, tipo, nombre_negocio: nombreNegocio }),
+      // `claveAdmin` es la clave maestra que autoriza abrir una agenda. Se manda
+      // al backend porque es ahí donde se valida: la comprobación del panel es
+      // solo para dar el error sin esperar una ida y vuelta.
+      registrarCuenta: (tipo, nombreNegocio, claveAdmin = '') =>
+        post('registrarCuenta', {
+          token, tipo, nombre_negocio: nombreNegocio, clave_admin: claveAdmin
+        }),
 
       getTurnosPorRango: (desde, hasta) => post('getTurnosPorRango', { token, desde, hasta }),
       cancelarTurno: (idTurno) => post('cancelarTurnoDueno', { token, id_turno: idTurno }),

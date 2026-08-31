@@ -2,11 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- `viewport-fit=cover` es lo que hace que env(safe-area-inset-*) devuelva
+       algo distinto de 0 en un iPhone. El CSS ya lo usa para la barra superior
+       y la navegación inferior; sin esto acá, ese cálculo no hace nada. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Reservá tu turno</title>
   <meta name="description" content="Reservá tu turno en segundos. Sin crear cuenta.">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#141414">
+  <meta name="theme-color" content="#0B0D13">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +19,9 @@
   <link rel="stylesheet" href="css/componentes.css">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="img/poste-barbero.svg">
+  <!-- iOS ignora el manifest y solo lee esta etiqueta, y solo acepta PNG. Sin
+       ella, "Agregar a inicio" guarda una captura de la página como icono. -->
+  <link rel="apple-touch-icon" href="img/icono-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
@@ -150,12 +156,18 @@
 
         <!-- Paso 3: fecha y hora -->
         <section class="seccion-paso pila" id="paso-fecha" data-bloqueada="true">
-          <div class="paso">
-            <span class="paso__numero">3</span>
-            <div class="crece">
-              <div class="paso__titulo">Elegí día y hora</div>
-              <div class="paso__elegido" id="elegido-fecha"></div>
+          <div class="paso fila fila--sep">
+            <div class="fila">
+              <span class="paso__numero">3</span>
+              <div class="crece">
+                <div class="paso__titulo">Elegí día y hora</div>
+                <div class="paso__elegido" id="elegido-fecha"></div>
+              </div>
             </div>
+            <button class="boton boton--fantasma boton--chico" type="button" id="btn-ver-mes">
+              <svg class="ico ico--sm"><use href="#ico-calendario"/></svg>
+              Ver mes
+            </button>
           </div>
           <div class="dias" id="lista-dias" role="group" aria-label="Días disponibles"></div>
           <div class="tarjeta tarjeta--compacta">
@@ -205,8 +217,12 @@
 
 </main>
 
+<!-- El botón "Soy el dueño" de la cabecera se oculta en móvil porque no entra al
+     lado de "Ya tengo un turno". El pie está en todas las vistas, así que este
+     link es el único camino al panel desde un celular. -->
 <footer class="contenedor centrado chico tenue" style="padding-block: var(--e6)">
   <p>Agenda online · Reservá sin crear cuenta</p>
+  <p style="margin-top: var(--e2)"><a href="panel.html">Soy el dueño de un negocio</a></p>
 </footer>
 
 <script src="js/config.js"></script>

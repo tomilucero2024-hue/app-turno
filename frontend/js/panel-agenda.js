@@ -50,6 +50,31 @@ window.PanelModulos.Agenda = (() => {
     const activos = turnosFiltrados.filter((t) => t.estado !== 'cancelado');
     const facturacionPrevista = activos.reduce((suma, t) => suma + (Number(t.precio) || 0), 0);
 
+    const hoy = UI.hoyIso();
+    const ahora = UI.ahoraHora();
+    const proximoTurno = activos.find((t) => (t.fecha > hoy) || (t.fecha === hoy && t.hora >= ahora)) || activos[0];
+    const proximoTexto = proximoTurno ? `${proximoTurno.hora} • ${proximoTurno.cliente_nombre}` : 'Sin turnos próximos';
+
+    // Hero Card de métricas ejecutivas
+    const heroCard = el('section', { clase: 'hero-card' }, [
+      el('div', { clase: 'hero-card__header' }, [
+        el('div', {}, [
+          el('div', { clase: 'hero-card__label', texto: 'Facturación estimada del período' }),
+          el('div', { clase: 'hero-card__amount', texto: UI.precio(facturacionPrevista) })
+        ])
+      ]),
+      el('div', { clase: 'metrics-grid' }, [
+        el('div', { clase: 'metric-box' }, [
+          el('span', { clase: 'metric-box__title', texto: 'Ocupación Turnos' }),
+          el('span', { clase: 'metric-box__value', texto: `${activos.length} activos (${turnosFiltrados.length} tot.)` })
+        ]),
+        el('div', { clase: 'metric-box' }, [
+          el('span', { clase: 'metric-box__title', texto: 'Próximo Cliente' }),
+          el('span', { clase: 'metric-box__value', texto: proximoTexto })
+        ])
+      ])
+    ]);
+
     // Controles de búsqueda y filtro
     const inputBuscador = el('input', {
       clase: 'entrada',
@@ -83,23 +108,19 @@ window.PanelModulos.Agenda = (() => {
     const contenedorTurnos = el('div', { id: 'contenedor-turnos-agenda' });
 
     pintar(ctx.contenido(), el('div', { clase: 'pila pila--lg' }, [
-      ctx.encabezado('Agenda', 'Los turnos reservados en el período elegido.',
+      ctx.encabezado('Agenda', 'Gestión de turnos en tiempo real.',
         el('button', {
           clase: 'boton boton--secundario boton--chico',
           type: 'button',
           onClick: () => pintarAgenda(ctx)
         }, [ico('refrescar', 'ico ico--sm'), document.createTextNode('Actualizar')])),
 
+      heroCard,
+
       ctx.selectorDeRango(ctx.estado.rango, (nuevo) => {
         ctx.estado.rango = nuevo;
         pintarAgenda(ctx);
       }),
-
-      el('div', { clase: 'grilla grilla--3' }, [
-        ctx.tarjetaMetrica('Turnos', String(activos.length)),
-        ctx.tarjetaMetrica('Cancelados', String(turnosFiltrados.length - activos.length)),
-        ctx.tarjetaMetrica('A facturar', UI.precio(facturacionPrevista))
-      ]),
 
       barraFiltros,
       contenedorTurnos
@@ -131,12 +152,12 @@ window.PanelModulos.Agenda = (() => {
 
     if (!turnosFiltrados.length) {
       pintar(contenedor, el('div', { clase: 'tarjeta' }, [
-        vacio('No hay turnos que coincidan con la búsqueda o filtro.', 'calendario')
+        vacio('No hay turnos registrados en este período o búsqueda.', 'calendario')
       ]));
       return;
     }
 
-    pintar(contenedor, el('div', { clase: 'pila' }, agruparPorFecha(turnosFiltrados, ctx)));
+    pintar(contenedor, el('div', { clase: 'pila pila--lg' }, agruparPorFecha(turnosFiltrados, ctx)));
   }
 
   function agruparPorFecha(turnos, ctx) {
@@ -147,12 +168,12 @@ window.PanelModulos.Agenda = (() => {
     });
 
     return Array.from(porFecha.entries()).map(([fecha, delDia]) =>
-      el('div', { clase: 'tarjeta pila' }, [
+      el('div', { clase: 'pila pila--sm' }, [
         el('div', { clase: 'fila fila--sep' }, [
           el('div', { clase: 'titular', texto: UI.fechaRelativa(fecha) }),
           el('span', { clase: 'chico tenue', texto: UI.fechaLarga(fecha) })
         ]),
-        el('div', { clase: 'lista' }, delDia.map((t) => filaTurno(t, ctx)))
+        el('div', { clase: 'timeline-list' }, delDia.map((t) => filaTurno(t, ctx)))
       ]));
   }
 
@@ -199,17 +220,26 @@ window.PanelModulos.Agenda = (() => {
       }));
     }
 
-    return el('div', { clase: `item${turno.estado === 'cancelado' ? ' item--cancelado' : ''}` }, [
-      el('span', { clase: 'item__hora', texto: turno.hora }),
-      el('div', { clase: 'item__cuerpo' }, [
-        el('div', { clase: 'item__titulo', texto: turno.cliente_nombre }),
-        el('div', { clase: 'item__meta',
-          texto: [turno.servicio_nombre, turno.barbero_nombre, UI.telefono(turno.cliente_telefono)]
-            .filter(Boolean).join(' · ') })
+    return el('article', { clase: `turn-card${turno.estado === 'cancelado' ? ' turn-card--cancelado' : ''}` }, [
+      el('div', { clase: 'turn-time' }, [
+        el('span', { clase: 'turn-time__hour', texto: turno.hora }),
+        el('span', { clase: 'turn-time__duration', texto: `${turno.duracion_minutos || 30}m` })
       ]),
-      el('span', { clase: 'precio chico ocultar-movil', texto: UI.precio(turno.precio) }),
-      UI.insignia(turno.estado),
-      el('div', { clase: 'item__acciones' }, acciones)
+      el('div', { clase: 'turn-details' }, [
+        el('div', { clase: 'turn-client', texto: turno.cliente_nombre }),
+        el('div', { clase: 'turn-service' }, [
+          el('span', { texto: turno.servicio_nombre || 'Servicio' }),
+          el('span', { texto: ' · ' }),
+          el('span', { clase: 'oro negrita', texto: UI.precio(turno.precio) }),
+          turno.barbero_nombre ? el('span', { clase: 'tenue', texto: ` · ${turno.barbero_nombre}` }) : null
+        ].filter(Boolean))
+      ]),
+      el('div', { clase: 'turn-meta' }, [
+        el('span', { clase: `status-badge status-badge--${turno.estado}` }, [
+          document.createTextNode(UI.ESTADOS[turno.estado] || turno.estado)
+        ]),
+        el('div', { clase: 'fila', style: 'gap: 4px;' }, acciones)
+      ])
     ]);
   }
 

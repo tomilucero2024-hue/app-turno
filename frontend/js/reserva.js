@@ -236,52 +236,26 @@
     const totalDias = CONFIG.DIAS_A_MOSTRAR || 21;
     const todosLosDias = Array.from({ length: totalDias }, (_, i) => UI.sumarDias(hoy, i));
 
-    const totalSemanas = Math.ceil(totalDias / DIAS_POR_SEMANA);
-    const inicioSemana = estado.semanaOffset * DIAS_POR_SEMANA;
-    const diasSemanaActual = todosLosDias.slice(inicioSemana, inicioSemana + DIAS_POR_SEMANA);
-
     const contenedor = $('#lista-dias');
 
-    const controlesNavegacion = el('div', { clase: 'barra-navegacion-dias' }, [
-      el('button', {
-        clase: 'boton boton--fantasma boton--chico',
-        type: 'button',
-        disabled: estado.semanaOffset === 0,
-        onClick: () => {
-          if (estado.semanaOffset > 0) {
-            estado.semanaOffset--;
-            pintarDias();
-          }
-        }
-      }, [ico('chevron-izq', 'ico ico--sm'), document.createTextNode('Semana anterior')]),
+    const btnVerMes = $('#btn-ver-mes');
+    if (btnVerMes) {
+      btnVerMes.onclick = () => abrirModalCalendario(todosLosDias);
+    }
 
-      el('button', {
-        clase: 'boton boton--contorno boton--chico',
-        type: 'button',
-        onClick: () => abrirModalCalendario(todosLosDias)
-      }, [ico('calendario', 'ico ico--sm'), document.createTextNode('Ver mes')]),
-
-      el('button', {
-        clase: 'boton boton--fantasma boton--chico',
-        type: 'button',
-        disabled: estado.semanaOffset >= totalSemanas - 1,
-        onClick: () => {
-          if (estado.semanaOffset < totalSemanas - 1) {
-            estado.semanaOffset++;
-            pintarDias();
-          }
-        }
-      }, [document.createTextNode('Semana siguiente'), ico('chevron', 'ico ico--sm')])
-    ]);
-
-    const botonesDias = diasSemanaActual.map((iso) => {
+    const botonesDias = todosLosDias.map((iso) => {
       const p = UI.partesDeFecha(iso);
       return el('button', {
         clase: 'dia',
         type: 'button',
         'aria-pressed': String(estado.fecha === iso),
         'aria-label': UI.fechaLarga(iso),
-        onClick: () => elegirFecha(iso)
+        onClick: (e) => {
+          elegirFecha(iso);
+          try {
+            e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          } catch (errScroll) {}
+        }
       }, [
         el('span', { clase: 'dia__semana', texto: iso === hoy ? 'Hoy' : p.semanaCorto }),
         el('span', { clase: 'dia__numero', texto: String(p.numero) }),
@@ -289,18 +263,15 @@
       ]);
     });
 
-    pintar(contenedor, [
-      controlesNavegacion,
-      el('div', { clase: 'dias' }, botonesDias)
-    ]);
+    pintar(contenedor, botonesDias);
   }
 
   function abrirModalCalendario(diasDisponibles) {
-    const cuerpo = el('div', { clase: 'pila pila--md' }, [
+    const cuerpo = el('div', { clase: 'pila' }, [
       el('p', { clase: 'chico tenue', texto: 'Elegí cualquier día disponible dentro de las próximas 3 semanas:' }),
       el('div', {
         clase: 'grilla',
-        style: 'grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--e2); max-height: 55vh; overflow-y: auto;'
+        style: 'grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: var(--e2); max-height: 55vh; overflow-y: auto;'
       }, diasDisponibles.map((iso) => {
         const p = UI.partesDeFecha(iso);
         const hoy = UI.hoyIso();
@@ -311,9 +282,13 @@
           'aria-pressed': String(estado.fecha === iso),
           onClick: () => {
             cerrar();
-            const indice = diasDisponibles.indexOf(iso);
-            estado.semanaOffset = Math.floor(indice / DIAS_POR_SEMANA);
             elegirFecha(iso);
+            setTimeout(() => {
+              const diaSeleccionado = UI.$(`.dia[aria-pressed="true"]`);
+              if (diaSeleccionado) {
+                diaSeleccionado.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+              }
+            }, 100);
           }
         }, [
           el('span', { clase: 'dia__semana', texto: iso === hoy ? 'Hoy' : p.semanaCorto }),
@@ -370,6 +345,27 @@
     estado.hora = hora;
     pintarHorarios();
     sincronizarPasos();
+    acercarResumen();
+  }
+
+  /**
+   * Trae el formulario de confirmación a la vista al completar el último paso.
+   *
+   * En pantalla ancha el resumen está al costado y siempre visible. En móvil
+   * queda debajo de la grilla de horarios, que puede tener treinta botones: sin
+   * esto, elegir la hora no produce ningún cambio visible y el botón de
+   * confirmar queda a varias pantallas de scroll. El `scroll-padding-top` del
+   * CSS es lo que evita que la barra superior tape el título al llegar.
+   */
+  function acercarResumen() {
+    if (!window.matchMedia || !window.matchMedia('(max-width: 900px)').matches) return;
+    const formulario = $('#form-reserva');
+    if (!formulario) return;
+    try {
+      formulario.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      formulario.scrollIntoView();
+    }
   }
 
   function sincronizarPasos() {

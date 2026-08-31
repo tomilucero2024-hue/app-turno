@@ -27,7 +27,8 @@ function instalar() {
   props.setProperty('MASTER_SPREADSHEET_ID', ss.getId());
 
   Logger.log('Planilla maestra creada: ' + ss.getUrl());
-  Logger.log('Falta cargar a mano las propiedades FIREBASE_API_KEY y FIREBASE_PROJECT_ID.');
+  Logger.log('Falta cargar a mano las propiedades FIREBASE_API_KEY, FIREBASE_PROJECT_ID ' +
+    'y CLAVE_ALTA_ADMIN (la clave que autoriza abrir agendas nuevas).');
 }
 
 /**
@@ -50,6 +51,10 @@ function verificarInstalacion() {
   if (!props.TURNSTILE_SECRET) {
     problemas.push('AVISO: sin TURNSTILE_SECRET la verificación anti-spam queda desactivada. ' +
       'Aceptable en desarrollo, no en producción.');
+  }
+  if (!props.CLAVE_ALTA_ADMIN) {
+    problemas.push('AVISO: sin CLAVE_ALTA_ADMIN cualquiera que se registre en Firebase puede ' +
+      'abrir una agenda nueva. Cargá una clave para cerrar el alta.');
   }
 
   if (props.MASTER_SPREADSHEET_ID) {

@@ -2,16 +2,22 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- `viewport-fit=cover` es lo que hace que env(safe-area-inset-*) devuelva
+       algo distinto de 0 en un iPhone. El CSS ya lo usa para la barra superior
+       y la navegación inferior; sin esto acá, ese cálculo no hace nada. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Demo interactiva · App Turnos</title>
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#141414">
+  <meta name="theme-color" content="#0B0D13">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/estilo.css">
   <link rel="stylesheet" href="css/componentes.css">
   <link rel="icon" type="image/svg+xml" href="img/poste-barbero.svg">
+  <!-- iOS ignora el manifest y solo lee esta etiqueta, y solo acepta PNG. Sin
+       ella, "Agregar a inicio" guarda una captura de la página como icono. -->
+  <link rel="apple-touch-icon" href="img/icono-180.png">
 </head>
 <body style="padding-bottom: var(--e8)">
 
@@ -22,14 +28,16 @@
 </div>
 
 <header class="barra">
-  <div class="contenedor fila fila--sep">
-    <div class="fila">
+  <!-- `fila--envolver` en los dos: en 375px los dos botones no entran al lado del
+       título y se salían de la pantalla por la derecha. -->
+  <div class="contenedor fila fila--sep fila--envolver">
+    <span class="marca">
       <span class="marca__sello"><img src="img/poste-barbero.svg" alt="Logo" class="marca__icono"></span>
-      <span class="titular negrita">Demo Interactiva</span>
-    </div>
-    <div class="fila">
-      <a href="index.html?n=demo" class="boton boton--primario boton--chico">Ver Reserva Cliente</a>
-      <a href="panel.html" class="boton boton--secundario boton--chico">Ver Panel Dueño</a>
+      <span class="marca__nombre">Demo Interactiva</span>
+    </span>
+    <div class="fila fila--envolver">
+      <a href="index.html?n=demo" class="boton boton--primario boton--chico">Ver Reserva</a>
+      <a href="panel.html" class="boton boton--secundario boton--chico">Ver Panel</a>
     </div>
   </div>
 </header>

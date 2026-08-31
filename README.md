@@ -101,6 +101,7 @@ No hay dependencias: son dos scripts de Node.
    | `FIREBASE_API_KEY` | Sí | Verificar los ID tokens contra Identity Toolkit |
    | `FIREBASE_PROJECT_ID` | Sí | Validar el `aud` del token |
    | `TURNSTILE_SECRET` | En producción | Verificación anti-spam. Vacío = desactivada |
+   | `CLAVE_ALTA_ADMIN` | En producción | Clave que autoriza abrir una agenda nueva. Vacía = alta abierta |
    | `DRIVE_FOLDER_ID` | No | Carpeta donde agrupar las planillas de los negocios |
    | `MASTER_SPREADSHEET_ID` | Automática | La escribe `instalar()` |
 
@@ -120,6 +121,12 @@ Crear un widget gratuito en el panel de Cloudflare. La *site key* va en `TURNSTI
 Es la capa anti-abuso principal: Apps Script no expone la IP del cliente, así que limitar por IP no es posible, y el límite por teléfono se esquiva cambiando de número.
 
 Las dos mitades van juntas: con `TURNSTILE_SECRET` cargado y sin *site key* en el frontend, toda reserva falla con `VERIFICACION_FALLIDA`; con las dos vacías la verificación queda desactivada, que es lo cómodo para desarrollar y lo inaceptable para publicar.
+
+### Clave de alta
+
+`CLAVE_ALTA_ADMIN` es lo que impide que cualquiera que se registre con Firebase abra una agenda: el backend la exige en `registrarCuenta` antes de crear nada. Con la propiedad vacía, el alta queda abierta.
+
+`CONFIG.CLAVE_ADMIN`, en `frontend/js/config.js`, es un espejo opcional de esa clave que sirve para mostrar el error sin ir al servidor. **No protege nada**: `config.js` se descarga en el navegador de cualquier visitante, así que la clave queda a la vista y la comparación se saltea desde la consola. Se puede dejar vacía; si se completa, tiene que coincidir con la del script.
 
 ### 4. Frontend
 

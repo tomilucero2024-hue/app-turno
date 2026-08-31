@@ -1,8 +1,25 @@
 /**
  * Service Worker para soporte PWA y carga instantánea de recursos estáticos.
+ *
+ * La estrategia NO es la misma para todo, y esa es la decisión central del
+ * archivo:
+ *
+ * - El HTML y el JavaScript van por RED PRIMERO. Con cache primero, una app
+ *   instalada en el celular se queda servida desde el disco y no ve una versión
+ *   nueva nunca: el usuario abre el ícono, el Service Worker le devuelve el
+ *   HTML viejo, y la corrección que se publicó ayer no llega. Ese fue el
+ *   comportamiento hasta esta versión.
+ *
+ * - El CSS, las imágenes y el manifest van por CACHE PRIMERO con revalidación
+ *   en segundo plano. Cambian poco y son los que hacen que la primera pantalla
+ *   se dibuje al instante.
+ *
+ * Nada de esto toca las llamadas a Apps Script ni a Firebase: se descartan por
+ * origen antes de decidir cualquier estrategia.
  */
 
-const CACHE_NAME = 'app-turno-cache-v1';
+const CACHE_NAME = 'app-turno-cache-v2';
+
 const RECURSOS_ESTATICOS = [
   './',
   './index.html',
@@ -22,46 +39,91 @@ const RECURSOS_ESTATICOS = [
   './js/panel-estadisticas.js',
   './js/panel-ajustes.js',
   './js/panel.js',
+  './img/poste-barbero.svg',
+  './img/icono-180.png',
+  './img/icono-192.png',
+  './img/icono-512.png',
+  './img/icono-maskable-512.png',
   './manifest.json'
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(RECURSOS_ESTATICOS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      // `addAll` falla entera si un solo recurso da 404, y con eso el Service
+      // Worker no se instala. Se piden de a uno para que un archivo que todavía
+      // no se subió no tire abajo la instalación completa.
+      .then((cache) => Promise.all(
+        RECURSOS_ESTATICOS.map((url) => cache.add(url).catch(() => null))
+      ))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((claves) =>
-      Promise.all(
-        claves.map((clave) => {
-          if (clave !== CACHE_NAME) return caches.delete(clave);
-        })
-      )
+      Promise.all(claves.map((clave) => (clave === CACHE_NAME ? null : caches.delete(clave))))
     ).then(() => self.clients.claim())
   );
 });
 
+/** El HTML y el JS son el código de la app: siempre se prefiere el de la red. */
+function esCodigoDeLaApp(peticion, url) {
+  return peticion.mode === 'navigate' ||
+    peticion.destination === 'document' ||
+    peticion.destination === 'script' ||
+    url.pathname.endsWith('.html');
+}
+
+function guardarEnCache(peticion, respuesta) {
+  if (!respuesta || respuesta.status !== 200 || respuesta.type !== 'basic') return respuesta;
+  const clon = respuesta.clone();
+  caches.open(CACHE_NAME).then((cache) => cache.put(peticion, clon));
+  return respuesta;
+}
+
+/**
+ * Busca en el caché ignorando la query string como último recurso.
+ *
+ * La pantalla del cliente se abre siempre como `index.html?n=barberia`, y esa
+ * URL exacta no está guardada: sin `ignoreSearch` una app instalada no abre
+ * nada estando sin señal, que es justamente cuando el caché tendría que servir.
+ */
+function buscarEnCache(peticion) {
+  return caches.match(peticion).then((exacta) =>
+    exacta || caches.match(peticion, { ignoreSearch: true }));
+}
+
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // No interceptar peticiones a Apps Script, Firebase o APIs externas
+  // No interceptar peticiones a Apps Script, Firebase o APIs externas.
   if (url.origin !== self.location.origin || e.request.method !== 'GET') {
     return;
   }
 
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      const fetchPromise = fetch(e.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const clon = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clon));
-        }
-        return networkResponse;
-      }).catch(() => cached);
+  if (esCodigoDeLaApp(e.request, url)) {
+    e.respondWith(
+      fetch(e.request)
+        .then((respuesta) => guardarEnCache(e.request, respuesta))
+        // Sin red se cae al caché; si tampoco está, se deja pasar el error para
+        // que el navegador muestre su propia pantalla de "sin conexión".
+        .catch(() => buscarEnCache(e.request).then((cacheada) => {
+          if (cacheada) return cacheada;
+          throw new Error('Sin red y sin copia en caché de ' + url.pathname);
+        }))
+    );
+    return;
+  }
 
-      return cached || fetchPromise;
+  // Recursos estáticos: se sirve la copia guardada y se revalida por detrás.
+  e.respondWith(
+    buscarEnCache(e.request).then((cacheada) => {
+      const desdeLaRed = fetch(e.request)
+        .then((respuesta) => guardarEnCache(e.request, respuesta))
+        .catch(() => cacheada);
+      return cacheada || desdeLaRed;
     })
   );
 });

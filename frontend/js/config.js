@@ -41,10 +41,19 @@ const CONFIG = {
   DIAS_A_MOSTRAR: 21,
 
   /**
-   * Clave maestra de administrador para crear nuevas cuentas o agendas.
-   * Cambiala por la contraseña que quieras usar vos.
+   * Clave maestra que el panel pide antes de abrir una agenda nueva.
+   *
+   * ESTO NO ES UNA MEDIDA DE SEGURIDAD y no puede serlo: este archivo se
+   * descarga entero en el navegador de cualquier visitante, así que la clave
+   * queda a la vista y la comparación se saltea desde la consola. Sirve para
+   * dar el error al instante, sin ir al servidor.
+   *
+   * Quien autoriza de verdad es el backend, comparando contra la propiedad de
+   * script `CLAVE_ALTA_ADMIN`. Esa es la que hay que cargar; esta se puede
+   * dejar vacía y el flujo sigue funcionando igual (el error llega desde el
+   * servidor en vez de al instante). Si la ponés, tiene que coincidir.
    */
-  CLAVE_ADMIN: 'admin2026'
+  CLAVE_ADMIN: ''
 };
 
 /** URL pública de la pantalla de reserva, para los comprobantes de WhatsApp. */

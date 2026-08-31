@@ -181,6 +181,21 @@ function secretoTurnstile_() {
   return propiedad_('TURNSTILE_SECRET', '');
 }
 
+/**
+ * Clave maestra que autoriza el alta de una agenda nueva.
+ *
+ * Vive acá y no en el frontend por la razón obvia: `config.js` se descarga en
+ * el navegador de cualquiera, así que una clave comparada en JavaScript no
+ * autoriza nada — se lee en el código fuente de la página y se saltea borrando
+ * el `if` desde la consola. La comparación real es la de `epRegistrarCuenta_`.
+ *
+ * Vacía = el alta queda abierta. Es aceptable en desarrollo y no en producción,
+ * y `verificarInstalacion()` lo avisa.
+ */
+function claveAltaAdmin_() {
+  return propiedad_('CLAVE_ALTA_ADMIN', '');
+}
+
 /** Carpeta de Drive donde se crean las planillas de los negocios (opcional). */
 function carpetaNegocios_() {
   return propiedad_('DRIVE_FOLDER_ID', '');

@@ -14,6 +14,11 @@ function epRegistrarCuenta_(params) {
     throw errorApp_(ERR.YA_REGISTRADO, 'Este usuario ya tiene un negocio registrado.');
   }
 
+  // La clave de alta se valida ACA, antes de crear la planilla. El panel también
+  // la pide, pero esa comprobación es solo comodidad: corre en el navegador del
+  // usuario y no autoriza nada por sí sola.
+  exigirClaveDeAlta_(params);
+
   var nombreNegocio = exigirTexto_(params, 'nombre_negocio', 80);
   var tipo = String(params.tipo || 'independiente');
   if (tipo !== 'independiente' && tipo !== 'barberia') {
@@ -87,6 +92,31 @@ function epRegistrarCuenta_(params) {
     nombre_negocio: cuenta.nombre_negocio,
     tipo: cuenta.tipo
   });
+}
+
+/**
+ * Corta el alta si la clave maestra no coincide.
+ *
+ * La comparación recorre siempre las dos cadenas completas en lugar de cortar
+ * en la primera diferencia: comparar con `!==` filtra por el tiempo de
+ * respuesta cuántos caracteres iniciales acertó quien prueba, y adivinar una
+ * clave carácter por carácter es mucho más barato que adivinarla entera.
+ */
+function exigirClaveDeAlta_(params) {
+  var esperada = claveAltaAdmin_();
+  if (!esperada) return;   // sin clave configurada, el alta queda abierta
+
+  var recibida = String((params && params.clave_admin) || '');
+  var iguales = recibida.length === esperada.length;
+  var largo = Math.max(recibida.length, esperada.length);
+  for (var i = 0; i < largo; i++) {
+    if (recibida.charAt(i) !== esperada.charAt(i)) iguales = false;
+  }
+
+  if (!iguales) {
+    throw errorApp_(ERR.NO_AUTENTICADO,
+      'La clave de administrador no es correcta. Solo el administrador puede abrir una agenda nueva.');
+  }
 }
 
 /**

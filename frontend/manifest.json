@@ -3,15 +3,35 @@
   "short_name": "Turnos",
   "description": "Reservá tu turno en segundos sin registros pesados",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#1E1E1E",
+  "orientation": "portrait",
+  "background_color": "#0B0D13",
+  "theme_color": "#0B0D13",
   "icons": [
+    {
+      "src": "./img/icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "./img/poste-barbero.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
