@@ -761,6 +761,23 @@ button.item { text-align: left; width: 100%; }
   }
 
   .progreso--visible .progreso__relleno { width: 100%; }
+
+  /* El hilandero es la excepcion: sigue girando. La preferencia apunta al
+     movimiento que marea —desplazamientos grandes, parallax, zoom—, no a un
+     indicador de 15px; iOS mismo sigue girando sus ruedas de carga con
+     "Reducir movimiento" activado. Sin esto queda un anillo congelado dentro
+     de un boton deshabilitado, justo en el momento en que hay que esperar al
+     backend, y parece que la app se colgo. Se le baja el ritmo, que es la
+     concesion razonable.
+     Gana sobre la regla global de estilo.css —`animation-duration: 0.01ms`
+     sobre `*`— porque entre declaraciones `!important` decide la
+     especificidad, y una clase pesa mas que el selector universal. */
+  .hilandero {
+    animation-name: girar !important;
+    animation-duration: 1.1s !important;
+    animation-timing-function: linear !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 @keyframes latir {
@@ -795,6 +812,8 @@ button.item { text-align: left; width: 100%; }
 
 /* Hilandero para los botones que esperan al backend. */
 .hilandero {
+  display: inline-block;
+  flex: 0 0 auto;
   width: 15px; height: 15px;
   border-radius: 50%;
   border: 2px solid currentColor;
