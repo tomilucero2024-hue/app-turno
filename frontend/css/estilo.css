@@ -1,0 +1,222 @@
+/**
+ * Sistema visual de la app de turnos — "Premium Barber Suite".
+ *
+ * Dos ideas sostienen todo el diseño:
+ *
+ * 1. AURORA. El fondo no es un color plano: son manchas de luz difuminadas que
+ *    se mueven muy lento detrás de todo el contenido. Vive en una capa fija
+ *    (.aurora) con `filter: blur()`, nunca en el `background` de los elementos,
+ *    para que el navegador la componga una sola vez y no la repinte al scrollear.
+ *
+ * 2. VIDRIO. Las tarjetas no tienen fondo propio: dejan pasar la aurora
+ *    desenfocada con `backdrop-filter`. Por eso ningún contenedor puede llevar
+ *    un fondo opaco encima del aurora, o el efecto desaparece.
+ *
+ * Los colores viven todos como variables acá arriba. No hay un solo hex suelto
+ * en el resto del archivo: cambiar la paleta de una barbería es tocar :root.
+ */
+
+/* ==========================================================================
+   1. Tokens
+   ========================================================================== */
+
+:root {
+  /* Primario — oro. La escala va de la luz al bronce quemado. */
+  --oro-50:  #FBF6EC;
+  --oro-100: #F3E7CE;
+  --oro-200: #E6D0A4;
+  --oro-300: #D9B87B;
+  --oro-400: #CFAC69;
+  --oro-500: #C5A059;   /* color de marca */
+  --oro-600: #A9863F;
+  --oro-700: #8A6B2F;
+  --oro-800: #5E4820;
+  --oro-900: #382B13;
+
+  /* Secundario y terciario — los negros de la paleta. */
+  --tinta-900: #141414;
+  --tinta-850: #1A1A1A;
+  --tinta-800: #212121;
+  --tinta-700: #2D2D2D;
+  --tinta-600: #3B3B3B;
+  --tinta-500: #545454;
+
+  /* Neutro */
+  --neutro:    #F9F9F9;
+  --neutro-2:  #E4E4E4;
+  --neutro-3:  #B4B4B4;
+  --neutro-4:  #8A8A8A;
+
+  /* Semánticos */
+  --exito:   #4ADE80;
+  --alerta:  #FBBF24;
+  --peligro: #EF4444;
+  --info:    #7DA7F0;
+
+  /* Texto */
+  --texto:        var(--neutro);
+  --texto-suave:  rgba(249, 249, 249, 0.66);
+  --texto-tenue:  rgba(249, 249, 249, 0.42);
+
+  /* Vidrio: el material de todas las superficies elevadas. */
+  --vidrio-alto:  rgba(255, 255, 255, 0.085);
+  --vidrio-medio: rgba(255, 255, 255, 0.055);
+  --vidrio-bajo:  rgba(255, 255, 255, 0.03);
+  --borde:        rgba(255, 255, 255, 0.10);
+  --borde-fuerte: rgba(255, 255, 255, 0.18);
+  --brillo:       inset 0 1px 0 rgba(255, 255, 255, 0.07);
+
+  /* Sombras: siempre muy difusas y muy oscuras. Sobre un fondo con luz de
+     colores, una sombra gris estándar se ve sucia. */
+  --sombra-1: 0 2px 8px -4px rgba(0, 0, 0, 0.7);
+  --sombra-2: 0 18px 40px -26px rgba(0, 0, 0, 0.95);
+  --sombra-3: 0 40px 80px -40px rgba(0, 0, 0, 1);
+  --halo-oro: 0 10px 30px -12px rgba(197, 160, 89, 0.55);
+
+  /* Radios */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-xl: 30px;
+  --r-full: 999px;
+
+  /* Tipografía */
+  --fuente-titulo: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fuente-texto:  'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Ritmo */
+  --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px;
+  --e5: 24px; --e6: 32px; --e7: 48px; --e8: 64px;
+
+  --ancho-max: 1180px;
+  --transicion: 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ==========================================================================
+   2. Reset
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--fuente-texto);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--texto);
+  background: var(--tinta-900);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+h1 { font-size: clamp(1.9rem, 1.3rem + 2.4vw, 2.9rem); }
+h2 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.75rem); }
+h3 { font-size: 1.1rem; }
+
+p { margin: 0; }
+img, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--oro-300); text-decoration: none; }
+a:hover { color: var(--oro-200); }
+
+:focus-visible {
+  outline: 2px solid var(--oro-400);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+::selection { background: var(--oro-600); color: var(--tinta-900); }
+
+/* ==========================================================================
+   3. Aurora — el fondo
+   ========================================================================== */
+
+/* Capa fija detrás de todo. `position: fixed` y no `background` del body:
+   así el desenfoque se calcula una vez y el scroll no lo recalcula. */
+.aurora {
+  position: fixed;
+  inset: -20vmax;
+  z-index: -2;
+  pointer-events: none;
+  background: var(--tinta-900);
+  overflow: hidden;
+}
+
+.aurora__mancha {
+  position: absolute;
+  border-radius: 50%;
+  /* El desenfoque enorme es lo que convierte tres círculos en una aurora.
+     Por debajo de ~90px se leen como círculos y el efecto se rompe. */
+  filter: blur(110px);
+  opacity: 0.55;
+  will-change: transform;
+}
+
+.aurora__mancha--1 {
+  width: 46vmax; height: 46vmax;
+  top: -6vmax; left: 4vmax;
+  background: radial-gradient(circle at 30% 30%, var(--oro-500), transparent 68%);
+  animation: derivar-1 26s ease-in-out infinite alternate;
+}
+
+.aurora__mancha--2 {
+  width: 40vmax; height: 40vmax;
+  top: 26vmax; right: 2vmax;
+  background: radial-gradient(circle at 60% 40%, #6B4E9E, transparent 66%);
+  opacity: 0.38;
+  animation: derivar-2 32s ease-in-out infinite alternate;
+}
+
+.aurora__mancha--3 {
+  width: 38vmax; height: 38vmax;
+  bottom: -4vmax; left: 22vmax;
+  background: radial-gradient(circle at 40% 60%, #B5722F, transparent 65%);
+  opacity: 0.34;
+  animation: derivar-3 38s ease-in-out infinite alternate;
+}
+
+/* Trama de puntos: le devuelve textura y escala al degradado, que de otro
+   modo se ve gaseoso y sin plano de referencia. */
+.aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.075) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 30%, transparent 100%);
+}
+
+@keyframes derivar-1 {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(6vmax, 5vmax, 0) scale(1.14); }
+}
+@keyframes derivar-2 {
+  from { transform: translate3d(0, 0, 0) scale(1.06); }
+  to   { transform: translate3d(-7vmax, -4vmax, 0) scale(0.94); }
+}
+@keyframes derivar-3 {
+  from { transform: translate3d(0, 0, 0) scale(0.96); }
+  to   { transform: translate3d(5vmax, -6vmax, 0) scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora__mancha { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

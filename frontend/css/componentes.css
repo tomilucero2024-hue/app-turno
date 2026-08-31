@@ -1,0 +1,972 @@
+/**
+ * Componentes de la interfaz.
+ *
+ * `estilo.css` define el material (tokens, aurora, vidrio). Este archivo define
+ * las piezas hechas con ese material. Ningún componente de acá inventa un color:
+ * todos salen de las variables de :root.
+ *
+ * Regla que atraviesa el archivo: nada que se apoye sobre la aurora lleva fondo
+ * opaco. Si una superficie necesita más peso visual que el vidrio, usa
+ * `.panel-tinta`, que es translúcido oscuro — no negro sólido.
+ */
+
+/* ==========================================================================
+   1. Layout
+   ========================================================================== */
+
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin-inline: auto;
+  padding-inline: var(--e4);
+}
+
+.contenedor--angosto { max-width: 660px; }
+
+.pila      { display: flex; flex-direction: column; gap: var(--e4); }
+.pila--sm  { gap: var(--e2); }
+.pila--lg  { gap: var(--e6); }
+.fila      { display: flex; align-items: center; gap: var(--e3); }
+.fila--sep { justify-content: space-between; }
+.fila--fin { justify-content: flex-end; }
+.fila--arriba { align-items: flex-start; }
+.fila--envolver { flex-wrap: wrap; }
+.crece     { flex: 1; min-width: 0; }
+.centrado  { text-align: center; }
+
+.grilla    { display: grid; gap: var(--e4); }
+.grilla--2 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.grilla--3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.grilla--4 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+/* Layout de la pantalla de reserva: los pasos a la izquierda, el resumen
+   pegado a la derecha. Por debajo de 900px el resumen pasa abajo: partido en
+   dos columnas, ninguna de las dos queda usable.
+
+   El `minmax(0, …)` no es decorativo: con `1fr` a secas la columna se estira
+   hasta el ancho mínimo de su contenido, y la tira de días —21 botones en fila—
+   la empuja a ~1600px y hace scrollear la página entera de costado. */
+.grilla--reserva {
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .grilla--reserva { grid-template-columns: minmax(0, 1fr); }
+}
+
+.oculto { display: none !important; }
+
+.solo-lectores {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   2. Tarjeta de vidrio
+   ========================================================================== */
+
+.tarjeta {
+  position: relative;
+  padding: var(--e5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--borde);
+  /* El degradado diagonal simula la luz rozando un panel de vidrio. Sin él,
+     un fondo translúcido plano se lee como un rectángulo gris y sucio. */
+  background: linear-gradient(150deg, var(--vidrio-alto), var(--vidrio-bajo));
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: var(--sombra-2), var(--brillo);
+}
+
+.tarjeta--compacta { padding: var(--e4); border-radius: var(--r-md); }
+
+.tarjeta--interactiva {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--transicion), border-color var(--transicion),
+              background var(--transicion), box-shadow var(--transicion);
+}
+.tarjeta--interactiva:hover {
+  transform: translateY(-2px);
+  border-color: var(--borde-fuerte);
+  box-shadow: var(--sombra-3), var(--brillo);
+}
+.tarjeta--interactiva[aria-pressed="true"] {
+  border-color: var(--oro-500);
+  background: linear-gradient(150deg, rgba(197, 160, 89, 0.20), rgba(197, 160, 89, 0.05));
+  box-shadow: var(--halo-oro), var(--brillo);
+}
+
+.tarjeta__titulo {
+  font-family: var(--fuente-titulo);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+/* Para bloques que deben pesar más que el vidrio: comprobantes, totales. */
+.panel-tinta {
+  background: linear-gradient(150deg, rgba(26, 26, 26, 0.88), rgba(45, 45, 45, 0.74));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--borde);
+  border-radius: var(--r-lg);
+  padding: var(--e5);
+}
+
+/* ==========================================================================
+   3. Tipografía de apoyo
+   ========================================================================== */
+
+.eyebrow {
+  font-family: var(--fuente-titulo);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--oro-400);
+}
+
+.apagado { color: var(--texto-suave); }
+.tenue   { color: var(--texto-tenue); }
+.oro     { color: var(--oro-400); }
+.rojo    { color: #FCA5A5; }
+.chico   { font-size: 0.82rem; }
+.mono    { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.negrita { font-weight: 600; }
+.titular { font-family: var(--fuente-titulo); font-weight: 700; letter-spacing: -0.01em; }
+
+.precio {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   4. Botones
+   ========================================================================== */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e2);
+  padding: 11px 20px;
+  border-radius: var(--r-full);
+  border: 1px solid transparent;
+  font-family: var(--fuente-titulo);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--transicion), background var(--transicion),
+              border-color var(--transicion), box-shadow var(--transicion),
+              opacity var(--transicion);
+}
+.boton:active { transform: scale(0.975); }
+.boton:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.boton--primario {
+  background: linear-gradient(160deg, var(--oro-400), var(--oro-600));
+  color: var(--tinta-900);
+  box-shadow: var(--halo-oro);
+}
+.boton--primario:hover:not(:disabled) {
+  background: linear-gradient(160deg, var(--oro-300), var(--oro-500));
+}
+
+.boton--secundario {
+  background: var(--vidrio-alto);
+  border-color: var(--borde);
+  color: var(--texto);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.boton--secundario:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--borde-fuerte);
+}
+
+.boton--invertido {
+  background: var(--tinta-850);
+  border-color: rgba(255, 255, 255, 0.07);
+  color: var(--neutro);
+}
+.boton--invertido:hover:not(:disabled) { background: var(--tinta-700); }
+
+.boton--contorno {
+  background: transparent;
+  border-color: var(--oro-600);
+  color: var(--oro-300);
+}
+.boton--contorno:hover:not(:disabled) {
+  background: rgba(197, 160, 89, 0.12);
+  border-color: var(--oro-400);
+}
+
+.boton--peligro {
+  background: transparent;
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #FCA5A5;
+}
+.boton--peligro:hover:not(:disabled) { background: rgba(239, 68, 68, 0.14); }
+
+.boton--fantasma {
+  background: transparent;
+  border-color: transparent;
+  color: var(--texto-suave);
+}
+.boton--fantasma:hover:not(:disabled) { color: var(--texto); background: var(--vidrio-medio); }
+
+.boton--bloque { width: 100%; }
+.boton--chico  { padding: 7px 14px; font-size: 0.8rem; }
+.boton--grande { padding: 15px 30px; font-size: 0.98rem; }
+
+/* Botón de icono: el círculo de vidrio del sistema. */
+.boton-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  flex: 0 0 auto;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: all var(--transicion);
+}
+.boton-ico:hover:not(:disabled) {
+  color: var(--texto);
+  background: var(--vidrio-alto);
+  border-color: var(--borde-fuerte);
+}
+.boton-ico:disabled { opacity: 0.4; cursor: not-allowed; }
+.boton-ico--oro { background: var(--oro-600); border-color: transparent; color: var(--tinta-900); }
+.boton-ico--oro:hover:not(:disabled) { background: var(--oro-500); color: var(--tinta-900); }
+.boton-ico--peligro:hover:not(:disabled) { color: #FCA5A5; border-color: rgba(239, 68, 68, 0.45); }
+.boton-ico--chico { width: 32px; height: 32px; }
+
+/* Los iconos salen del sprite <svg> que cada página inserta al principio del
+   body. El trazo se define acá y no en el sprite: las propiedades heredables
+   cruzan la frontera del <use>, así que un icono siempre toma el color del
+   texto que lo rodea. */
+.ico {
+  width: 18px; height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ico--sm { width: 15px; height: 15px; }
+.ico--lg { width: 24px; height: 24px; }
+.ico--xl { width: 34px; height: 34px; }
+
+/* ==========================================================================
+   5. Formularios
+   ========================================================================== */
+
+.campo { display: flex; flex-direction: column; gap: 6px; }
+
+.campo__etiqueta {
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.entrada {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: rgba(20, 20, 20, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--texto);
+  transition: border-color var(--transicion), box-shadow var(--transicion), background var(--transicion);
+}
+.entrada::placeholder { color: var(--texto-tenue); }
+.entrada:hover:not(:disabled) { border-color: var(--borde-fuerte); }
+.entrada:focus {
+  outline: none;
+  border-color: var(--oro-500);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.18);
+  background: rgba(20, 20, 20, 0.62);
+}
+.entrada:disabled { opacity: 0.5; cursor: not-allowed; }
+.entrada[aria-invalid="true"] { border-color: var(--peligro); }
+.entrada--ticket {
+  font-family: var(--fuente-titulo);
+  font-size: 1.2rem;
+  letter-spacing: 0.28em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+select.entrada {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B4B4B4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+}
+select.entrada option { background: var(--tinta-800); color: var(--texto); }
+
+/* Buscador con la lupa adentro. */
+.buscador { position: relative; }
+.buscador > .ico {
+  position: absolute;
+  left: 15px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--texto-tenue);
+  pointer-events: none;
+}
+.buscador .entrada { padding-left: 44px; border-radius: var(--r-full); }
+
+.campo__ayuda { font-size: 0.78rem; color: var(--texto-tenue); }
+.campo__error { font-size: 0.78rem; color: #FCA5A5; }
+
+/* ==========================================================================
+   6. Chips, insignias, horarios y días
+   ========================================================================== */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+.chip--oro {
+  border-color: rgba(197, 160, 89, 0.40);
+  background: rgba(197, 160, 89, 0.14);
+  color: var(--oro-200);
+}
+
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.insignia::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.insignia--confirmado { color: var(--info);    background: rgba(125, 167, 240, 0.14); border-color: rgba(125, 167, 240, 0.32); }
+.insignia--completado { color: var(--exito);   background: rgba(74, 222, 128, 0.13);  border-color: rgba(74, 222, 128, 0.30); }
+.insignia--cancelado  { color: var(--neutro-4); background: rgba(255, 255, 255, 0.06); border-color: var(--borde); }
+.insignia--no_asistio { color: var(--alerta);  background: rgba(251, 191, 36, 0.13);  border-color: rgba(251, 191, 36, 0.30); }
+
+/* Grilla de horarios libres */
+.horarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: var(--e2);
+}
+
+.horario {
+  padding: 11px 6px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transicion);
+}
+.horario:hover { border-color: var(--oro-600); background: rgba(197, 160, 89, 0.10); }
+.horario[aria-pressed="true"] {
+  background: linear-gradient(160deg, var(--oro-400), var(--oro-600));
+  border-color: transparent;
+  color: var(--tinta-900);
+  font-weight: 700;
+  box-shadow: var(--halo-oro);
+}
+
+/* Tira horizontal de días */
+.dias {
+  display: flex;
+  gap: var(--e2);
+  overflow-x: auto;
+  padding-bottom: var(--e2);
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.dia {
+  flex: 0 0 auto;
+  width: 68px;
+  padding: 10px 4px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+  color: var(--texto);
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: all var(--transicion);
+}
+.dia:hover { border-color: var(--borde-fuerte); background: var(--vidrio-alto); }
+.dia__semana { display: block; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--texto-tenue); }
+.dia__numero { display: block; font-family: var(--fuente-titulo); font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+.dia__mes    { display: block; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-tenue); }
+.dia[aria-pressed="true"] {
+  background: linear-gradient(160deg, var(--oro-400), var(--oro-600));
+  border-color: transparent;
+  color: var(--tinta-900);
+  box-shadow: var(--halo-oro);
+}
+.dia[aria-pressed="true"] .dia__semana,
+.dia[aria-pressed="true"] .dia__mes { color: rgba(20, 20, 20, 0.75); }
+
+/* ==========================================================================
+   7. Barra superior y navegación en píldora
+   ========================================================================== */
+
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-block: var(--e3);
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--borde);
+}
+
+.marca { display: inline-flex; align-items: center; gap: var(--e2); }
+.marca__sello {
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--oro-400), var(--oro-700));
+  color: var(--tinta-900);
+  box-shadow: var(--halo-oro);
+}
+.marca__nombre {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: 1rem;
+}
+
+/* La píldora de navegación del sistema de referencia. */
+.nav-pildora {
+  display: flex;
+  gap: var(--e1);
+  padding: 5px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-pildora::-webkit-scrollbar { display: none; }
+
+.nav-pildora__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--texto-suave);
+  font-family: var(--fuente-titulo);
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transicion);
+}
+.nav-pildora__item:hover { color: var(--texto); background: var(--vidrio-alto); }
+.nav-pildora__item[aria-selected="true"] {
+  background: linear-gradient(160deg, var(--oro-400), var(--oro-600));
+  color: var(--tinta-900);
+  box-shadow: var(--sombra-1);
+}
+
+/* ==========================================================================
+   8. Listas y filas de datos
+   ========================================================================== */
+
+.lista { display: flex; flex-direction: column; gap: var(--e2); }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  padding: var(--e3) var(--e4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-bajo);
+  transition: background var(--transicion), border-color var(--transicion);
+}
+.item:hover { background: var(--vidrio-medio); border-color: var(--borde-fuerte); }
+.item--cancelado { opacity: 0.55; }
+
+.item__hora {
+  font-family: var(--fuente-titulo);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 56px;
+  color: var(--oro-300);
+}
+.item__cuerpo { flex: 1; min-width: 0; }
+.item__titulo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item__meta   { font-size: 0.8rem; color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item__acciones { display: flex; gap: 6px; flex: 0 0 auto; }
+
+/* Métrica grande para el resumen de estadísticas. */
+.metrica__valor {
+  font-family: var(--fuente-titulo);
+  font-size: clamp(1.7rem, 1.2rem + 1.6vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.metrica__etiqueta {
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+/* Barra proporcional para los rankings por barbero y por servicio. */
+.barra-dato { height: 6px; border-radius: var(--r-full); background: var(--vidrio-alto); overflow: hidden; }
+.barra-dato__relleno {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--oro-600), var(--oro-300));
+}
+
+/* ==========================================================================
+   9. Estados: carga, vacío, error
+   ========================================================================== */
+
+/* Apps Script arranca en frío entre 1 y 3 segundos: el esqueleto no es un
+   adorno, es lo que evita que la primera pantalla se vea rota.
+
+   El destello va en un ::after que se desplaza con `transform` y no en el
+   `background-position` del propio bloque: es la misma animación para el ojo,
+   pero la resuelve el compositor y no repinta en cada cuadro.
+
+   El contraste del destello es deliberadamente alto para el fondo oscuro de la
+   app. Con la diferencia mínima entre dos vidrios (menos de un 6% de blanco)
+   la animación existía pero no se veía, y una tarjeta gris quieta es
+   exactamente lo que queríamos evitar. */
+.esqueleto {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+}
+.esqueleto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(100deg,
+    transparent 22%,
+    rgba(255, 255, 255, 0.13) 40%,
+    rgba(197, 160, 89, 0.30) 50%,
+    rgba(255, 255, 255, 0.13) 60%,
+    transparent 78%);
+  animation: brillar 1.5s ease-in-out infinite;
+}
+.esqueleto--linea   { height: 14px; }
+.esqueleto--titulo  { height: 26px; width: 60%; }
+.esqueleto--bloque  { height: 76px; }
+.esqueleto--slot    { height: 44px; }
+.esqueleto--metrica { height: 104px; }
+.esqueleto--panel   { height: 190px; }
+.esqueleto--chip    { height: 32px; width: 96px; border-radius: var(--r-full); }
+
+@keyframes brillar {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* El contenido reemplaza al esqueleto con una entrada corta. Sin esto el
+   cambio se lee como un parpadeo y no queda claro que ya terminó de cargar. */
+.aparece { animation: aparecer 220ms ease-out both; }
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- Barra de progreso global ---------------------------------------------
+   Se alimenta de los pedidos en vuelo del cliente de API, así que aparece en
+   toda espera y no solo en las pantallas que dibujan esqueletos. Es
+   indeterminada a propósito: no sabemos cuánto va a tardar Apps Script y una
+   barra que avanza hasta un porcentaje inventado miente. */
+.progreso {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 200;
+  height: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.progreso--visible { opacity: 1; }
+
+.progreso__relleno {
+  height: 100%;
+  width: 40%;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, transparent, var(--oro-400), var(--oro-200), transparent);
+  box-shadow: 0 0 12px rgba(197, 160, 89, 0.55);
+  transform: translateX(-100%);
+}
+.progreso--visible .progreso__relleno { animation: recorrer 1.15s ease-in-out infinite; }
+
+/* Al terminar, la barra se completa en lugar de cortarse a mitad de camino. */
+.progreso--fin .progreso__relleno {
+  animation: none;
+  width: 100%;
+  transform: none;
+  transition: opacity 240ms ease;
+  opacity: 0;
+}
+
+@keyframes recorrer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(250%); }
+}
+
+/* "Reducir movimiento" pide sacar el desplazamiento, no la señal de que algo
+   está pasando. `estilo.css` corta todas las animaciones de un saque, y con eso
+   el esqueleto queda inmóvil y la barra congelada: exactamente el problema que
+   estas piezas venían a resolver. Acá se les devuelve un latido de opacidad,
+   que no desplaza nada y por eso es aceptable bajo esa preferencia.
+
+   Van en longhand y con !important porque la regla global de estilo.css es
+   `animation-duration: 0.01ms !important` sobre `*`. */
+@media (prefers-reduced-motion: reduce) {
+  .aparece { animation: none; }
+
+  .esqueleto::after,
+  .progreso--visible .progreso__relleno {
+    animation-name: latir !important;
+    animation-duration: 2.2s !important;
+    animation-timing-function: ease-in-out !important;
+    animation-iteration-count: infinite !important;
+    transform: none;
+  }
+
+  .esqueleto::after {
+    background: linear-gradient(100deg,
+      rgba(255, 255, 255, 0.08), rgba(197, 160, 89, 0.26), rgba(255, 255, 255, 0.08));
+  }
+
+  .progreso--visible .progreso__relleno { width: 100%; }
+}
+
+@keyframes latir {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e7) var(--e4);
+  text-align: center;
+  color: var(--texto-suave);
+}
+.vacio .ico { width: 34px; height: 34px; color: var(--texto-tenue); }
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e3);
+  padding: var(--e3) var(--e4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: var(--vidrio-medio);
+  font-size: 0.88rem;
+}
+.aviso--error   { border-color: rgba(239, 68, 68, 0.40);  background: rgba(239, 68, 68, 0.10);  color: #FCA5A5; }
+.aviso--exito   { border-color: rgba(74, 222, 128, 0.35); background: rgba(74, 222, 128, 0.10); color: #A7F3C0; }
+.aviso--atencion{ border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.10); color: #FDE68A; }
+
+/* Hilandero para los botones que esperan al backend. */
+.hilandero {
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: girar 0.7s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ==========================================================================
+   10. Avisos flotantes y diálogos
+   ========================================================================== */
+
+.tostadas {
+  position: fixed;
+  left: 50%;
+  bottom: var(--e5);
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  width: min(440px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.tostada {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e3) var(--e4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--borde);
+  background: rgba(26, 26, 26, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--sombra-3);
+  font-size: 0.88rem;
+  animation: entrar-abajo 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: auto;
+}
+.tostada--error { border-color: rgba(239, 68, 68, 0.45); }
+.tostada--exito { border-color: rgba(74, 222, 128, 0.40); }
+.tostada__ico--error { color: #FCA5A5; }
+.tostada__ico--exito { color: var(--exito); }
+.tostada__ico--info  { color: var(--oro-400); }
+
+@keyframes entrar-abajo {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: var(--e4);
+  background: rgba(10, 10, 10, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: aparecer 160ms ease-out;
+}
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+.dialogo {
+  width: min(460px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: entrar-abajo 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ==========================================================================
+   11. Piezas propias de la reserva
+   ========================================================================== */
+
+/* Numerito del paso, a la izquierda del título de cada sección. */
+.paso { display: flex; align-items: center; gap: var(--e3); }
+.paso__numero {
+  display: grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--oro-700);
+  background: rgba(197, 160, 89, 0.14);
+  color: var(--oro-300);
+  font-family: var(--fuente-titulo);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.paso--listo .paso__numero {
+  background: var(--oro-500);
+  border-color: transparent;
+  color: var(--tinta-900);
+}
+.paso__titulo { font-family: var(--fuente-titulo); font-weight: 700; font-size: 1.02rem; }
+.paso__elegido { font-size: 0.82rem; color: var(--oro-300); }
+
+.seccion-paso { transition: opacity var(--transicion); }
+.seccion-paso[data-bloqueada="true"] { opacity: 0.4; pointer-events: none; }
+
+/* Resumen fijo abajo en móvil: el equivalente al carrito de una tienda. */
+.resumen {
+  position: sticky;
+  top: 88px;
+}
+
+.codigo-ticket {
+  font-family: var(--fuente-titulo);
+  font-size: clamp(1.6rem, 1.2rem + 2vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--oro-300);
+  word-break: break-all;
+}
+
+.whatsapp {
+  background: #25D366;
+  color: #06331A;
+  border-color: transparent;
+  box-shadow: 0 10px 26px -14px rgba(37, 211, 102, 0.8);
+}
+.whatsapp:hover:not(:disabled) { background: #3AE07A; color: #06331A; }
+
+/* ==========================================================================
+   12. Nuevos componentes interactivos (Calendario, Combos, Filtros)
+   ========================================================================== */
+
+/* Navegación semanal / mini-calendario */
+.barra-navegacion-dias {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  margin-bottom: var(--e2);
+}
+
+.check-indicador {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--borde-fuerte);
+  background: var(--vidrio-medio);
+  color: transparent;
+  flex: 0 0 auto;
+  transition: all var(--transicion);
+}
+.tarjeta--interactiva[aria-pressed="true"] .check-indicador {
+  background: var(--oro-500);
+  border-color: var(--oro-500);
+  color: var(--tinta-900);
+}
+
+.chip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-suave);
+  transition: color var(--transicion);
+}
+.chip-link:hover {
+  color: var(--oro-300);
+}
+
+.grid-acciones-calendario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--e2);
+  margin-top: var(--e2);
+}
+
+/* Buscador y filtro en la agenda del panel */
+.barra-filtro-agenda {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--e3);
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .barra-filtro-agenda { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   13. Tabla (agenda del dueño en pantallas anchas)
+   ========================================================================== */
+
+.tabla-envoltura { overflow-x: auto; }
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.tabla th {
+  text-align: left;
+  padding: var(--e2) var(--e3);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+  border-bottom: 1px solid var(--borde);
+  white-space: nowrap;
+}
+.tabla td {
+  padding: var(--e3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+.tabla tr:last-child td { border-bottom: 0; }
+.tabla tbody tr:hover { background: var(--vidrio-bajo); }
+
+/* ==========================================================================
+   13. Responsive
+   ========================================================================== */
+
+@media (max-width: 720px) {
+  .tarjeta { padding: var(--e4); }
+  .panel-tinta { padding: var(--e4); }
+  .resumen { position: static; }
+  .ocultar-movil { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .horarios { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+  .item { flex-wrap: wrap; gap: var(--e2) var(--e3); }
+  .item__acciones { margin-left: auto; }
+}
+
+/* Safari en iOS aplica backdrop-filter, pero si el navegador no lo soporta
+   las tarjetas quedarían casi invisibles sobre la aurora. Este bloque les
+   devuelve un fondo sólido en ese caso. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tarjeta, .barra, .tostada, .nav-pildora {
+    background: rgba(33, 33, 33, 0.94);
+  }
+  .panel-tinta { background: rgba(26, 26, 26, 0.96); }
+}

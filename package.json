@@ -1,0 +1,13 @@
+{
+  "name": "app-turno",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App de turnos para barberias. Backend en Google Apps Script sobre Google Sheets.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node tests/disponibilidad.test.js && node tests/router.test.js && node tests/ui_helpers.test.js",
+    "push": "clasp push",
+    "pull": "clasp pull --rootDir backend"
+  }
+}

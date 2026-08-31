@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo interactiva · App Turnos</title>
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#141414">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css">
+  <link rel="stylesheet" href="css/componentes.css">
+</head>
+<body style="padding-bottom: var(--e8)">
+
+<div class="aurora" aria-hidden="true">
+  <div class="aurora__mancha aurora__mancha--1"></div>
+  <div class="aurora__mancha aurora__mancha--2"></div>
+  <div class="aurora__mancha aurora__mancha--3"></div>
+</div>
+
+<header class="barra">
+  <div class="contenedor fila fila--sep">
+    <div class="fila">
+      <span class="marca__sello"><svg class="ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg></span>
+      <span class="titular negrita">Demo Interactiva</span>
+    </div>
+    <div class="fila">
+      <a href="index.html?n=demo" class="boton boton--primario boton--chico">Ver Reserva Cliente</a>
+      <a href="panel.html" class="boton boton--secundario boton--chico">Ver Panel Dueño</a>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor pila pila--lg" style="margin-top: var(--e6)">
+  <div class="tarjeta pila">
+    <div class="eyebrow">Banco de Pruebas Offline</div>
+    <h1>Explorá las nuevas funcionalidades</h1>
+    <p class="apagado">
+      Esta versión incluye todas las mejoras de la última actualización: soporte para múltiples servicios, cualquier barbero disponible, selector semanal de fecha, exportación a calendarios (.ics y Google Calendar), buscador y filtro en Agenda, exportación CSV de métricas, margen de descanso y archivado automático.
+    </p>
+  </div>
+
+  <div class="grilla grilla--2">
+    <div class="tarjeta pila">
+      <div class="tarjeta__titulo">1. Flujo de Reserva de Clientes</div>
+      <p class="chico tenue">Probá la experiencia del cliente final con combos de servicios, cualquier barbero, mini-calendario y confirmación con descarga de calendario.</p>
+      <div class="fila">
+        <a href="index.html?n=demo" class="boton boton--primario boton--bloque">Abrir Reserva Cliente (slug: demo)</a>
+      </div>
+    </div>
+
+    <div class="tarjeta pila">
+      <div class="tarjeta__titulo">2. Panel de Administración del Negocio</div>
+      <p class="chico tenue">Probá la agenda con buscador en tiempo real, filtro por profesional, estadísticas con exportación a CSV, perfil comercial y archivado histórico.</p>
+      <div class="fila">
+        <a href="panel.html" class="boton boton--secundario boton--bloque">Abrir Panel de Control</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta panel-tinta pila">
+    <div class="tarjeta__titulo">Checklist de Novedades Implementadas</div>
+    <ul class="pila pila--sm chico" style="list-style: none; padding-left: 0;">
+      <li class="fila"><span class="oro">✔</span> <strong>Múltiples servicios (Combos):</strong> Suma interactiva de tiempos y precios en reserva.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Cualquier profesional disponible:</strong> Unión de slots en tiempo real y asignación concurrente bajo Lock.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Navegación semanal y Mini-calendario:</strong> Botones de semana anterior/siguiente y modal de mes.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Exportación de Calendarios:</strong> Links a Google Calendar y descarga directa de archivo .ics en el comprobante.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Buscador y Filtro en Agenda:</strong> Búsqueda en vivo por nombre/teléfono/ticket y filtro por profesional.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Exportación de Estadísticas:</strong> Descarga de planilla completa de turnos en archivo CSV UTF-8.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Margen de descanso (Buffer):</strong> Configuración de tiempo de respiro entre turnos en Ajustes.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Perfil comercial público:</strong> Dirección con link a Google Maps, Instagram y WhatsApp en el encabezado.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>Archivado de Turnos:</strong> Mueve turnos cerrados de más de 30 días a `Turnos_Historico`.</li>
+      <li class="fila"><span class="oro">✔</span> <strong>PWA y Modularización:</strong> Manifest, Service Worker y código separado en submódulos limpios.</li>
+    </ul>
+  </div>
+</main>
+
+</body>
+</html>
