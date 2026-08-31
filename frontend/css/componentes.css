@@ -547,12 +547,6 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
 }
 
 .nav-pildora__item {
-    padding: 9px 12px;
-    font-size: 0.8rem;
-  }
-}
-
-.nav-pildora__item {
   display: inline-flex;
   align-items: center;
   gap: 7px;

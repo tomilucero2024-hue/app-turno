@@ -155,4 +155,30 @@ mockInput.trigger('input');
 assert.strictEqual(mockInput.value, '11 234', 'Máscara formatea número parcial correctamente');
 console.log('  ok  aplicarMascaraTelefono formatea en vivo 11 XXXX-XXXX');
 
+// 7. Las hojas de estilo tienen las llaves balanceadas
+//
+// Una llave de cierre suelta no rompe nada a la vista: el navegador la trata
+// como un error, se recupera consumiendo la regla que viene después y la
+// descarta en silencio. Así desapareció la regla principal de
+// `.nav-pildora__item`, y las pestañas del panel quedaron con el estilo crudo
+// del botón del sistema. Contar llaves lo detecta antes de que llegue a la
+// pantalla.
+const dirCss = path.join(dirFrontend, 'css');
+fs.readdirSync(dirCss).filter((f) => f.endsWith('.css')).forEach((archivo) => {
+  const css = fs.readFileSync(path.join(dirCss, archivo), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+  let profundidad = 0;
+  let linea = 1;
+  for (const caracter of css) {
+    if (caracter === '\n') linea++;
+    else if (caracter === '{') profundidad++;
+    else if (caracter === '}') {
+      profundidad--;
+      assert.ok(profundidad >= 0, archivo + ':' + linea +
+        ' cierra una llave que nunca se abrió; la regla siguiente se pierde sin aviso');
+    }
+  }
+  assert.strictEqual(profundidad, 0, archivo + ' deja bloques sin cerrar');
+});
+console.log('  ok  las hojas de estilo tienen las llaves balanceadas');
+
 console.log('\nTodos los tests de UI y Frontend pasaron satisfactoriamente.\n');
