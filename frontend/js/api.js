@@ -129,17 +129,31 @@ const API = (() => {
     // --- Cliente final (sin login) -----------------------------------------
     getNegocio: (slug) => get('getNegocio', { slug }),
 
-    getDisponibilidad: (slug, idBarbero, idServicio, fecha) =>
-      get('getDisponibilidad', {
+    getDisponibilidad: (slug, idBarbero, idServicio, fecha) => {
+      const serviciosArray = Array.isArray(idServicio) ? idServicio : [idServicio];
+      const idServiciosStr = serviciosArray.join(',');
+      const idServicioUnico = serviciosArray[0] || '';
+      return get('getDisponibilidad', {
         slug,
         id_barbero: idBarbero,
-        id_servicios: Array.isArray(idServicio) ? idServicio.join(',') : idServicio,
+        id_servicio: idServicioUnico,
+        id_servicios: idServiciosStr,
         fecha
-      }),
+      });
+    },
 
     getTurno: (slug, codigoTicket) => get('getTurno', { slug, codigo_ticket: codigoTicket }),
 
-    crearTurno: (datos) => post('crearTurno', datos),
+    crearTurno: (datos) => {
+      const copia = { ...datos };
+      if (copia.id_servicios) {
+        copia.id_servicio = Array.isArray(copia.id_servicios) ? copia.id_servicios[0] : String(copia.id_servicios).split(',')[0];
+        if (Array.isArray(copia.id_servicios)) copia.id_servicios = copia.id_servicios.join(',');
+      } else if (copia.id_servicio) {
+        copia.id_servicios = String(copia.id_servicio);
+      }
+      return post('crearTurno', copia);
+    },
 
     cancelarTurno: (slug, codigoTicket) =>
       post('cancelarTurno', { slug, codigo_ticket: codigoTicket }),
