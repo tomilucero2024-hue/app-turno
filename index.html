@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Cargando aplicación...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#141414">
+  <style>
+    body {
+      background: #141414;
+      color: #eaeaea;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+  </style>
+  <script>
+    // Redirección instantánea preservando query string (?n=slug, ?ticket=XYZ, etc.) y hash
+    const params = window.location.search || '';
+    const hash = window.location.hash || '';
+    window.location.replace('./frontend/index.html' + params + hash);
+  </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0;url=./frontend/index.html">
+  </noscript>
+</head>
+<body>
+  <p>Redirigiendo a la aplicación de turnos... <a href="./frontend/index.html" style="color: #C5A059;">Haz clic aquí si no redirige automáticamente.</a></p>
+</body>
+</html>
