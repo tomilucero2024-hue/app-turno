@@ -258,6 +258,39 @@
   }
 
   /**
+   * Marca en qué parte del scroll está la píldora de secciones.
+   *
+   * El CSS usa `data-scroll` para desvanecer solo el lado que todavía tiene
+   * contenido. Sin esto habría que elegir entre no dar ninguna señal de que hay
+   * más pestañas, o dejar la última siempre cortada contra el borde aunque ya
+   * no quede nada más a la derecha.
+   */
+  function observarScrollDeSecciones() {
+    const nav = $('#nav-secciones');
+    if (!nav) return;
+
+    const actualizar = () => {
+      // 2px de tolerancia: el scroll fraccionario de los navegadores rara vez
+      // llega al final exacto, y sin el margen el estado "fin" no se alcanza.
+      const sobra = nav.scrollWidth - nav.clientWidth;
+      if (sobra <= 2) {
+        nav.removeAttribute('data-scroll');
+        return;
+      }
+      const alPrincipio = nav.scrollLeft <= 2;
+      const alFinal = nav.scrollLeft >= sobra - 2;
+      nav.dataset.scroll = alPrincipio ? 'inicio' : (alFinal ? 'fin' : 'medio');
+    };
+
+    nav.addEventListener('scroll', actualizar, { passive: true });
+    window.addEventListener('resize', actualizar);
+    actualizar();
+    return actualizar;
+  }
+
+  let actualizarScrollDeSecciones = () => {};
+
+  /**
    * Engancha la navegación inferior una sola vez.
    *
    * Antes esto vivía dentro de `abrirPanel()`, que corre después de resolver la
@@ -496,6 +529,8 @@
       }, [ico(s.icono, 'ico ico--sm'), document.createTextNode(s.titulo)])
     ));
 
+    actualizarScrollDeSecciones = observarScrollDeSecciones() || (() => {});
+
     mostrarVista('panel');
     irA(estado.seccion);
   }
@@ -518,6 +553,9 @@
       try {
         activa.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       } catch (err) {}
+      // El scroll suave termina después: el evento `scroll` va a recalcular
+      // sobre la marcha, esto solo cubre el caso en que no se mueva nada.
+      actualizarScrollDeSecciones();
     }
 
     const sec = SECCIONES.find((s) => s.id === id);

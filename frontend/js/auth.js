@@ -49,6 +49,7 @@ const Auth = (() => {
     // Solo aparece si alguien cerró "Enable create" en la consola de Firebase.
     // No es la configuración esperada: con el registro cerrado, el ingreso con
     // Google deja de funcionar para todo negocio nuevo.
+    'auth/redirect-sin-sesion': 'El navegador bloqueó el ingreso con Google. Permití las ventanas emergentes para este sitio, o entrá con correo y contraseña.',
     'auth/admin-restricted-operation': 'El registro está cerrado en Firebase. Habilitá "Enable create" en Authentication → Settings.'
   };
 
@@ -80,24 +81,50 @@ const Auth = (() => {
   const ingresarConEmail = (email, clave) =>
     firebase.auth().signInWithEmailAndPassword(email, clave);
 
+  /** Marca que salimos a Google por redirección, para detectar la vuelta vacía. */
+  const MARCA_REDIRECCION = 'volviendo_de_google';
+
   /**
    * Ingreso con Google.
    *
-   * En el celular la ventana emergente no sirve: Safari en iOS la bloquea por
-   * defecto y varios navegadores la abren como pestaña aparte que vuelve
-   * vacía, así que el ingreso queda colgado sin error. La redirección usa la
-   * misma pestaña y es el camino soportado ahí. En escritorio se queda el
-   * popup, que no hace perder lo que haya en pantalla.
+   * Ventana emergente PRIMERO, en el celular también, y redirección solo si el
+   * navegador bloquea la ventana. Es al revés de lo que parece razonable, y el
+   * motivo es concreto:
    *
-   * `pointer: coarse` distingue el dedo del mouse mejor que mirar el user
-   * agent, que miente y hay que ir parchando con cada navegador nuevo.
+   * `signInWithRedirect` deja de funcionar cuando la página no vive en el mismo
+   * dominio que el `authDomain` de Firebase — que es exactamente el caso al
+   * publicar en GitHub Pages. Los navegadores que particionan el almacenamiento
+   * por sitio (Safari desde iOS 16, Chrome con cookies de terceros
+   * bloqueadas) descartan el estado que Firebase deja antes de irse a Google, y
+   * al volver la sesión no queda iniciada. Lo peor es que no tira ningún error:
+   * el usuario vuelve al formulario, igual que antes, sin explicación. Ese es
+   * el síntoma de "en el celular no me deja entrar con Google".
+   *
+   * La ventana emergente no depende de ese estado. Los navegadores móviles la
+   * abren como pestaña y la cierran solas al terminar; la bloquean solo si no
+   * la disparó un gesto del usuario, y acá siempre sale de un toque en el
+   * botón. Para el caso en que igual la bloqueen queda la redirección.
    */
   function ingresarConGoogle() {
     const proveedor = new firebase.auth.GoogleAuthProvider();
-    if (window.matchMedia('(pointer: coarse)').matches) {
+
+    return firebase.auth().signInWithPopup(proveedor).catch((err) => {
+      // Solo se cae a la redirección cuando el navegador NO dejó abrir la
+      // ventana. Si el usuario la cerró a propósito, insistir mandándolo a otra
+      // página sería pelearle.
+      const bloqueada = [
+        'auth/popup-blocked',
+        'auth/operation-not-supported-in-this-environment',
+        'auth/web-storage-unsupported'
+      ].indexOf(err && err.code) >= 0;
+
+      if (!bloqueada) throw err;
+
+      try {
+        sessionStorage.setItem(MARCA_REDIRECCION, '1');
+      } catch (e) {}
       return firebase.auth().signInWithRedirect(proveedor);
-    }
-    return firebase.auth().signInWithPopup(proveedor);
+    });
   }
 
   /**
@@ -106,10 +133,32 @@ const Auth = (() => {
    * La sesión en sí llega sola por `onAuthStateChanged`; esto se pide para
    * enterarse de los errores, que de otro modo se pierden en la navegación y
    * dejan al usuario de vuelta en el formulario sin ninguna explicación.
+   *
+   * Y hay un caso que no llega ni como error: la redirección que vuelve sin
+   * usuario y sin excepción, que es como se manifiesta el bloqueo de
+   * almacenamiento de terceros. Por eso se deja una marca antes de salir: si al
+   * volver está la marca y no hay sesión, se devuelve un error propio en vez de
+   * dejar la pantalla muda.
    */
   function resultadoRedireccion() {
     inicializar();
-    return firebase.auth().getRedirectResult();
+
+    let volviamos = false;
+    try {
+      volviamos = sessionStorage.getItem(MARCA_REDIRECCION) === '1';
+      sessionStorage.removeItem(MARCA_REDIRECCION);
+    } catch (e) {}
+
+    return firebase.auth().getRedirectResult().then((resultado) => {
+      if (volviamos && !(resultado && resultado.user) && !firebase.auth().currentUser) {
+        const err = new Error(
+          'El navegador bloqueó el ingreso con Google al volver de la pantalla de Google. ' +
+          'Probá permitiendo las ventanas emergentes para este sitio, o entrá con correo y contraseña.');
+        err.code = 'auth/redirect-sin-sesion';
+        throw err;
+      }
+      return resultado;
+    });
   }
 
   const recuperarClave = (email) => firebase.auth().sendPasswordResetEmail(email);

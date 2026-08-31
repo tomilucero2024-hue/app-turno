@@ -535,15 +535,35 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
 }
 .nav-pildora::-webkit-scrollbar { display: none; }
 
-/* En móvil no entran las siete secciones y la barra no tiene barra de scroll:
-   sin esta señal, "Bloqueos" y "Lista negra" simplemente no existen para quien
-   usa el panel desde el celular. El degradado del borde derecho deja la última
-   pestaña a medio desvanecer, que es la manera estándar de decir "seguí". */
-@media (max-width: 768px) {
-  .nav-pildora {
-    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
-    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
-  }
+/* El degradado de los bordes es la única señal de que hay más pestañas: en
+   móvil no entran las siete y la barra de scroll está oculta.
+
+   Va gobernado por `data-scroll`, que pone `panel.js`, y no aplicado siempre.
+   Un degradado fijo a la derecha corta la última pestaña incluso cuando ya
+   llegaste al final, y ahí no se lee como "seguí" sino como que el texto se
+   sale de la caja — que es justo lo que hay que evitar. Con el atributo, cada
+   lado se desvanece solo mientras quede contenido de ese lado.
+
+   El `padding-inline` generoso es lo que impide que una pestaña quede pegada
+   al borde redondeado del contenedor al final del scroll. */
+.nav-pildora {
+  padding-inline: 10px;
+  scroll-padding-inline: 10px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.nav-pildora[data-scroll="inicio"] {
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 36px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 36px), transparent 100%);
+}
+.nav-pildora[data-scroll="medio"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%);
+}
+.nav-pildora[data-scroll="fin"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 100%);
 }
 
 .nav-pildora__item {
