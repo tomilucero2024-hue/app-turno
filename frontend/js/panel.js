@@ -258,37 +258,11 @@
   }
 
   /**
-   * Marca en qué parte del scroll está la píldora de secciones.
-   *
-   * El CSS usa `data-scroll` para desvanecer solo el lado que todavía tiene
-   * contenido. Sin esto habría que elegir entre no dar ninguna señal de que hay
-   * más pestañas, o dejar la última siempre cortada contra el borde aunque ya
-   * no quede nada más a la derecha.
+   * Secciones que no entran en la barra inferior y viven detrás del botón "Más".
+   * Son las tres de uso ocasional: las cuatro de todos los días tienen su lugar
+   * fijo, que es lo que permite acertarles con el dedo sin mirar.
    */
-  function observarScrollDeSecciones() {
-    const nav = $('#nav-secciones');
-    if (!nav) return;
-
-    const actualizar = () => {
-      // 2px de tolerancia: el scroll fraccionario de los navegadores rara vez
-      // llega al final exacto, y sin el margen el estado "fin" no se alcanza.
-      const sobra = nav.scrollWidth - nav.clientWidth;
-      if (sobra <= 2) {
-        nav.removeAttribute('data-scroll');
-        return;
-      }
-      const alPrincipio = nav.scrollLeft <= 2;
-      const alFinal = nav.scrollLeft >= sobra - 2;
-      nav.dataset.scroll = alPrincipio ? 'inicio' : (alFinal ? 'fin' : 'medio');
-    };
-
-    nav.addEventListener('scroll', actualizar, { passive: true });
-    window.addEventListener('resize', actualizar);
-    actualizar();
-    return actualizar;
-  }
-
-  let actualizarScrollDeSecciones = () => {};
+  const SECCIONES_EN_MAS = ['bloqueos', 'clientes', 'ajustes'];
 
   /**
    * Engancha la navegación inferior una sola vez.
@@ -299,7 +273,30 @@
    */
   function prepararNavegacionInferior() {
     UI.$$('#bottom-nav .nav-item').forEach((boton) => {
-      boton.addEventListener('click', () => irA(boton.dataset.tab));
+      boton.addEventListener('click', () => {
+        if (boton.dataset.accion === 'mas') abrirHojaDeSecciones();
+        else irA(boton.dataset.tab);
+      });
+    });
+  }
+
+  /** Lista las secciones que no entran en la barra inferior. */
+  function abrirHojaDeSecciones() {
+    const cerrar = UI.dialogo({
+      titulo: 'Más secciones',
+      cuerpo: el('div', { clase: 'lista' }, SECCIONES_EN_MAS.map((id) => {
+        const seccion = SECCIONES.find((s) => s.id === id);
+        if (!seccion) return null;
+        return el('button', {
+          clase: 'item', type: 'button',
+          'aria-current': estado.seccion === id ? 'page' : null,
+          onClick: () => { cerrar(); irA(id); }
+        }, [
+          ico(seccion.icono, 'ico'),
+          el('span', { clase: 'crece negrita', texto: seccion.titulo }),
+          ico('chevron', 'ico ico--sm')
+        ]);
+      }).filter(Boolean))
     });
   }
 
@@ -529,8 +526,6 @@
       }, [ico(s.icono, 'ico ico--sm'), document.createTextNode(s.titulo)])
     ));
 
-    actualizarScrollDeSecciones = observarScrollDeSecciones() || (() => {});
-
     mostrarVista('panel');
     irA(estado.seccion);
   }
@@ -541,7 +536,10 @@
       boton.setAttribute('aria-selected', String(SECCIONES[i].id === id)));
 
     UI.$$('#bottom-nav .nav-item').forEach((boton) => {
-      boton.classList.toggle('active', boton.dataset.tab === id);
+      const activo = boton.dataset.accion === 'mas'
+        ? SECCIONES_EN_MAS.indexOf(id) >= 0
+        : boton.dataset.tab === id;
+      boton.classList.toggle('active', activo);
     });
 
     // La píldora seleccionada puede quedar fuera de la franja visible: en un
@@ -553,9 +551,6 @@
       try {
         activa.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       } catch (err) {}
-      // El scroll suave termina después: el evento `scroll` va a recalcular
-      // sobre la marcha, esto solo cubre el caso en que no se mueva nada.
-      actualizarScrollDeSecciones();
     }
 
     const sec = SECCIONES.find((s) => s.id === id);
