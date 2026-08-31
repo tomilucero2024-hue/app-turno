@@ -101,6 +101,27 @@
   }
 
   function prepararIngreso() {
+    let modo = 'ingresar';
+
+    const tabBotones = UI.$$('#tabs-ingreso [data-modo]');
+    const btnSubmit = $('#btn-ingresar');
+    const btnOlvide = $('#btn-olvide');
+
+    tabBotones.forEach((boton) => {
+      boton.addEventListener('click', () => {
+        modo = boton.dataset.modo;
+        tabBotones.forEach((b) => b.setAttribute('aria-selected', String(b === boton)));
+        if (modo === 'crear') {
+          btnSubmit.textContent = 'Crear cuenta';
+          btnOlvide.classList.add('oculto');
+        } else {
+          btnSubmit.textContent = 'Ingresar';
+          btnOlvide.classList.remove('oculto');
+        }
+        pintar($('#error-ingreso'), []);
+      });
+    });
+
     $('#form-ingreso').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = $('#entrada-email').value.trim();
@@ -108,9 +129,13 @@
       if (!email || !clave) return;
 
       pintar($('#error-ingreso'), []);
-      await conCarga($('#btn-ingresar'), async () => {
+      await conCarga(btnSubmit, async () => {
         try {
-          await Auth.ingresar(email, clave);
+          if (modo === 'crear') {
+            await Auth.crearConEmail(email, clave);
+          } else {
+            await Auth.ingresarConEmail(email, clave);
+          }
         } catch (err) {
           pintar($('#error-ingreso'), UI.aviso(Auth.mensajeDeError(err)));
         }
