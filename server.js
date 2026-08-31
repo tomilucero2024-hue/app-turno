@@ -24,7 +24,7 @@ const TIPOS_MIME = {
   '.ico': 'image/x-icon'
 };
 
-const servidor = http.createServer((solicitud, respuesta) => {
+function manejarSolicitud(solicitud, respuesta) {
   // Extrae la ruta sin parámetros de consulta (query string)
   const urlSinParametros = (solicitud.url || '/').split('?')[0];
   let rutaRelativa = decodeURIComponent(urlSinParametros);
@@ -68,10 +68,11 @@ const servidor = http.createServer((solicitud, respuesta) => {
       respuesta.end(contenido);
     });
   });
-});
+}
 
 function iniciarServidor(puerto) {
-  servidor.listen(puerto, () => {
+  const srv = http.createServer(manejarSolicitud);
+  srv.listen(puerto, () => {
     console.log('==================================================');
     console.log(` Servidor local activo en: http://localhost:${puerto}`);
     console.log('==================================================');
@@ -80,7 +81,9 @@ function iniciarServidor(puerto) {
     console.log(` - Pantalla de Reserva Cliente:  http://localhost:${puerto}/index.html?n=demo`);
     console.log(` - Panel de Administración:      http://localhost:${puerto}/panel.html`);
     console.log('==================================================');
-  }).on('error', (err) => {
+  });
+
+  srv.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.log(` El puerto ${puerto} está ocupado. Intentando en http://localhost:${puerto + 1}...`);
       iniciarServidor(puerto + 1);
