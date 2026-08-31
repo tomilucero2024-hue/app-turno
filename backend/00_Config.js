@@ -117,7 +117,13 @@ const LIMITES = {
   ESPERA_LOCK_MS: 20000,
   CACHE_TOKEN_SEG: 300,
   CACHE_CUENTA_SEG: 300,
-  MAX_DIAS_RANGO_CONSULTA: 92
+  MAX_DIAS_RANGO_CONSULTA: 92,
+
+  /** Intentos fallidos de clave de alta admitidos por hora, en todo el sistema. */
+  CLAVE_ALTA_FALLIDAS_POR_HORA: 20,
+
+  /** Vida del vale de alta: el rato que el administrador tarda en completar el alta. */
+  VALE_ALTA_SEG: 1800
 };
 
 /** Alfabeto del código de ticket: sin 0/O/1/I/L, para poder dictarlo por teléfono. */

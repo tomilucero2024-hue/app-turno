@@ -23,6 +23,13 @@
     panel: $('#vista-panel')
   };
 
+  /**
+   * La asigna `prepararAlta`. Vive acá arriba porque `mostrarVista` la necesita:
+   * en escritorio el ingreso con Google no recarga la página, así que el vale
+   * puede aparecer después de que el formulario ya se preparó.
+   */
+  let sincronizarCampoClaveAlta = () => {};
+
   function mostrarVista(nombre) {
     Object.entries(vistas).forEach(([clave, nodo]) => nodo.classList.toggle('oculto', clave !== nombre));
 
@@ -31,6 +38,8 @@
     // fixed` se dibujaba encima del formulario.
     const navInferior = $('#bottom-nav');
     if (navInferior) navInferior.classList.toggle('oculto', nombre !== 'panel');
+
+    if (nombre === 'alta') sincronizarCampoClaveAlta();
   }
 
   /** Cliente autenticado de la API, con un token recién pedido. */
@@ -107,17 +116,101 @@
     }
   }
 
+  /** Clave del vale de alta en sessionStorage. */
+  const VALE_ALTA = 'vale_alta';
+
+  const valeGuardado = () => {
+    try { return sessionStorage.getItem(VALE_ALTA) || ''; } catch (err) { return ''; }
+  };
+  const guardarVale = (vale) => {
+    try { sessionStorage.setItem(VALE_ALTA, vale); } catch (err) {}
+  };
+  const olvidarVale = () => {
+    try { sessionStorage.removeItem(VALE_ALTA); } catch (err) {}
+  };
+
   /**
-   * Pantalla de ingreso.
+   * Pantalla de ingreso, con dos caminos.
    *
-   * No hay registro: el alta de usuarios está deshabilitada en Firebase y las
-   * cuentas las crea el administrador a mano. Esta pantalla solo autentica a
-   * alguien que ya existe. Si un desconocido prueba con su correo, Firebase
-   * responde `auth/admin-restricted-operation` y `Auth.mensajeDeError` lo
-   * traduce a que pida acceso al administrador.
+   * "Ya tengo cuenta" entra directo: es el barbero volviendo a su agenda.
+   *
+   * "Abrir una agenda" pide primero la clave del administrador y no habilita el
+   * ingreso hasta validarla. La validación la hace el BACKEND: comparar en el
+   * navegador obligaría a publicar la clave en config.js, donde queda legible
+   * para cualquiera. A cambio el servidor devuelve un vale de un solo uso, que
+   * es lo único que se guarda en el teléfono y lo que después autoriza el alta.
+   * El vale sobrevive al viaje de ida y vuelta del ingreso con Google, que en
+   * el celular se hace por redirección y recarga la página.
    */
   function prepararIngreso() {
-    const btnSubmit = $('#btn-ingresar');
+    let modo = 'ingresar';
+
+    const tabBotones = UI.$$('#tabs-ingreso [data-modo]');
+    const campoClave = $('#campo-clave-admin');
+    const entradaClave = $('#entrada-clave-admin');
+    const btnValidar = $('#btn-validar-clave');
+    const ayudaClave = $('#ayuda-clave-admin');
+    const btnIngresar = $('#btn-ingresar');
+    const btnGoogle = $('#btn-google');
+    const btnOlvide = $('#btn-olvide');
+
+    /** En modo "crear", nada de ingresar hasta que haya vale. */
+    function sincronizarModo() {
+      const creando = modo === 'crear';
+      const habilitado = !creando || !!valeGuardado();
+
+      campoClave.classList.toggle('oculto', !creando);
+      btnOlvide.classList.toggle('oculto', creando);
+      btnIngresar.disabled = !habilitado;
+      btnGoogle.disabled = !habilitado;
+
+      if (creando && habilitado) {
+        ayudaClave.textContent = 'Clave validada. Ya podés entrar con Google para abrir la agenda.';
+        entradaClave.disabled = true;
+        btnValidar.disabled = true;
+      } else if (creando) {
+        ayudaClave.textContent = 'Para abrir una agenda nueva hace falta la clave del administrador. Pedísela a él: la escribe y no queda guardada.';
+        entradaClave.disabled = false;
+        btnValidar.disabled = false;
+      }
+    }
+
+    tabBotones.forEach((boton) => {
+      boton.addEventListener('click', () => {
+        modo = boton.dataset.modo;
+        tabBotones.forEach((b) => b.setAttribute('aria-selected', String(b === boton)));
+        pintar($('#error-ingreso'), []);
+        sincronizarModo();
+      });
+    });
+
+    btnValidar.addEventListener('click', async () => {
+      const clave = entradaClave.value.trim();
+      if (!clave) {
+        pintar($('#error-ingreso'), UI.aviso('Escribí la clave del administrador.'));
+        return;
+      }
+      pintar($('#error-ingreso'), []);
+
+      await conCarga(btnValidar, async () => {
+        try {
+          const respuesta = await API.verificarClaveAlta(clave);
+          // La clave se borra apenas se valida: se escribió en un teléfono
+          // ajeno y a partir de acá alcanza con el vale.
+          entradaClave.value = '';
+
+          if (respuesta.requiere_clave === false) {
+            tostada('El backend no tiene clave de alta configurada: el alta está abierta.', 'info');
+          } else {
+            guardarVale(respuesta.vale);
+            tostada('Clave correcta. Entrá con Google para abrir la agenda.', 'exito');
+          }
+          sincronizarModo();
+        } catch (err) {
+          pintar($('#error-ingreso'), UI.aviso(mensajeDeError(err)));
+        }
+      });
+    });
 
     $('#form-ingreso').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -127,7 +220,7 @@
 
       pintar($('#error-ingreso'), []);
 
-      await conCarga(btnSubmit, async () => {
+      await conCarga(btnIngresar, async () => {
         try {
           await Auth.ingresarConEmail(email, clave);
         } catch (err) {
@@ -136,9 +229,9 @@
       });
     });
 
-    $('#btn-google').addEventListener('click', async () => {
+    btnGoogle.addEventListener('click', async () => {
       pintar($('#error-ingreso'), []);
-      await conCarga($('#btn-google'), async () => {
+      await conCarga(btnGoogle, async () => {
         try {
           await Auth.ingresarConGoogle();
         } catch (err) {
@@ -146,6 +239,8 @@
         }
       });
     });
+
+    sincronizarModo();
 
     $('#btn-olvide').addEventListener('click', async () => {
       const email = $('#entrada-email').value.trim();
@@ -186,45 +281,65 @@
     });
 
     const entradaClave = $('#entrada-alta-clave-admin');
+    const campoClave = $('#campo-alta-clave-admin');
 
     /**
-     * Borra la clave del administrador del formulario.
+     * Borra la clave del formulario.
      *
-     * La escribe él en el dispositivo del barbero y se va: dejarla en el input
-     * significa que queda a la vista de quien apriete "mostrar contraseña" o
-     * abra el inspector, en una máquina que no es la suya. Se llama pase lo que
-     * pase, también cuando el alta falla.
+     * La escribe el administrador en el dispositivo del barbero y se va:
+     * dejarla en el input significa que queda a la vista de quien apriete
+     * "mostrar contraseña" o abra el inspector, en una máquina que no es la
+     * suya. Se llama pase lo que pase, también cuando el alta falla.
      */
     const olvidarClave = () => { if (entradaClave) entradaClave.value = ''; };
+
+    /**
+     * El campo de la clave solo aparece si NO hay vale.
+     *
+     * En el camino normal el administrador ya la escribió antes de entrar con
+     * Google, así que volver a pedirla sería pedirle que esté dos veces. Queda
+     * como salida de emergencia para cuando el vale caducó a mitad del trámite.
+     */
+    function sincronizarCampoClave() {
+      if (campoClave) campoClave.classList.toggle('oculto', !!valeGuardado());
+    }
+    sincronizarCampoClaveAlta = sincronizarCampoClave;
 
     $('#form-alta').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nombre = $('#entrada-negocio').value.trim();
-      const claveAdmin = (entradaClave?.value || '').trim();
-
       if (!nombre) return;
 
       pintar($('#error-alta'), []);
 
-      // La clave NO se compara acá. La única comparación vive en el backend
-      // (`exigirClaveDeAlta_`): para validarla en el navegador habría que
-      // publicarla en config.js, que es exactamente lo que no se quiere —
-      // quedaría legible para cualquiera que abra el código de la página.
+      // Ni la clave ni el vale se comparan acá. La única comparación vive en el
+      // backend (`exigirClaveDeAlta_`): validar en el navegador obligaría a
+      // publicar la clave en config.js, donde la lee cualquiera.
+      const autorizacion = { vale: valeGuardado(), clave: (entradaClave?.value || '').trim() };
+
       await conCarga($('#btn-alta'), async () => {
         try {
           const api = await dueno();
-          await api.registrarCuenta(tipo, nombre, claveAdmin);
+          await api.registrarCuenta(tipo, nombre, autorizacion);
           olvidarClave();
+          olvidarVale();          // el vale ya se consumió del lado del servidor
           estado.perfil = await api.getPerfilCuenta();
           await recargarNegocio();
           abrirPanel();
           tostada('¡Listo! Tu agenda ya está publicada.', 'exito');
         } catch (err) {
           olvidarClave();
+          // Un vale rechazado ya no sirve: el servidor lo consumió o venció.
+          // Dejarlo guardado haría que el campo de la clave siguiera oculto y
+          // el alta quedaría trabada sin forma de reintentar.
+          if (err.codigo === 'NO_AUTENTICADO') olvidarVale();
+          sincronizarCampoClave();
           pintar($('#error-alta'), UI.aviso(mensajeDeError(err)));
         }
       });
     });
+
+    sincronizarCampoClave();
   }
 
   // ==========================================================================

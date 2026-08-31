@@ -158,6 +158,18 @@ const API = (() => {
     cancelarTurno: (slug, codigoTicket) =>
       post('cancelarTurno', { slug, codigo_ticket: codigoTicket }),
 
+    /**
+     * Valida la clave maestra del administrador y devuelve un vale de un solo
+     * uso, con el que después se autoriza el alta.
+     *
+     * Va sin token porque corre antes de que el negocio se autentique: es el
+     * primer paso del alta, cuando el administrador está presente. La clave
+     * nunca se compara en el navegador — hacerlo obligaría a publicarla en
+     * config.js, donde la lee cualquiera.
+     */
+    verificarClaveAlta: (claveAdmin) =>
+      post('verificarClaveAlta', { clave_admin: claveAdmin }),
+
     // --- Dueño (con token) --------------------------------------------------
     // El token se pasa en cada llamada y nunca se persiste en localStorage:
     // vive en memoria y se renueva con getIdToken() de Firebase.
@@ -167,9 +179,11 @@ const API = (() => {
       // `claveAdmin` es la clave maestra que autoriza abrir una agenda. Se manda
       // al backend porque es ahí donde se valida: la comprobación del panel es
       // solo para dar el error sin esperar una ida y vuelta.
-      registrarCuenta: (tipo, nombreNegocio, claveAdmin = '') =>
+      registrarCuenta: (tipo, nombreNegocio, autorizacion = {}) =>
         post('registrarCuenta', {
-          token, tipo, nombre_negocio: nombreNegocio, clave_admin: claveAdmin
+          token, tipo, nombre_negocio: nombreNegocio,
+          clave_admin: autorizacion.clave || '',
+          vale_alta: autorizacion.vale || ''
         }),
 
       getTurnosPorRango: (desde, hasta) => post('getTurnosPorRango', { token, desde, hasta }),

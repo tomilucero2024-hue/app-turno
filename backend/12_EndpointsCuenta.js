@@ -95,28 +95,89 @@ function epRegistrarCuenta_(params) {
 }
 
 /**
- * Corta el alta si la clave maestra no coincide.
+ * Compara la clave maestra recorriendo siempre las dos cadenas completas.
  *
- * La comparación recorre siempre las dos cadenas completas en lugar de cortar
- * en la primera diferencia: comparar con `!==` filtra por el tiempo de
- * respuesta cuántos caracteres iniciales acertó quien prueba, y adivinar una
- * clave carácter por carácter es mucho más barato que adivinarla entera.
+ * No corta en la primera diferencia a propósito: comparar con `!==` filtra por
+ * el tiempo de respuesta cuántos caracteres iniciales acertó quien prueba, y
+ * adivinar una clave carácter por carácter es mucho más barato que adivinarla
+ * entera.
+ */
+function claveDeAltaCoincide_(recibida) {
+  var esperada = claveAltaAdmin_();
+  var texto = String(recibida || '');
+  var iguales = texto.length === esperada.length;
+  var largo = Math.max(texto.length, esperada.length);
+  for (var i = 0; i < largo; i++) {
+    if (texto.charAt(i) !== esperada.charAt(i)) iguales = false;
+  }
+  return iguales;
+}
+
+/**
+ * Verifica la clave maestra ANTES de que el negocio se autentique, y devuelve
+ * un vale de un solo uso.
+ *
+ * Existe para que el panel pueda pedir la clave al principio del alta, cuando
+ * el administrador está presente, en lugar de al final. La alternativa —
+ * comparar la clave en el navegador — obligaría a publicarla en `config.js`,
+ * donde queda legible para cualquiera que abra el código de la página.
+ *
+ * Devuelve un vale y no la confirmación a secas porque el ingreso con Google se
+ * lleva la pestaña y vuelve: algo tiene que sobrevivir a esa vuelta. Que sea un
+ * vale y no la clave significa que lo único que queda guardado en el teléfono
+ * del barbero es una cadena al azar que caduca en media hora y sirve una sola
+ * vez.
+ *
+ * Es el único endpoint sin autenticar que compara un secreto, así que lleva
+ * límite de intentos. El límite es global porque Apps Script no expone la IP
+ * del cliente; con veinte fallos por hora, adivinar una clave decente es
+ * inviable y un alta legítima gasta un solo intento.
+ */
+function epVerificarClaveAlta_(params) {
+  var esperada = claveAltaAdmin_();
+  if (!esperada) {
+    // Sin clave configurada el alta está abierta: no hay nada que verificar y
+    // devolver un vale sería mentir sobre el estado del sistema.
+    return ok_({ requiere_clave: false, vale: '' });
+  }
+
+  if (!dentroDelLimite_('clave_alta', LIMITES.CLAVE_ALTA_FALLIDAS_POR_HORA, 3600)) {
+    throw errorApp_(ERR.LIMITE_EXCEDIDO,
+      'Demasiados intentos con la clave de administrador. Esperá un rato antes de volver a probar.');
+  }
+
+  if (!claveDeAltaCoincide_(params && params.clave_admin)) {
+    throw errorApp_(ERR.NO_AUTENTICADO, 'La clave de administrador no es correcta.');
+  }
+
+  var vale = nuevoId_('vale');
+  CacheService.getScriptCache().put('vale_' + vale, '1', LIMITES.VALE_ALTA_SEG);
+  return ok_({ requiere_clave: true, vale: vale, vence_en_min: Math.round(LIMITES.VALE_ALTA_SEG / 60) });
+}
+
+/**
+ * Corta el alta si no viene ni la clave maestra ni un vale válido.
+ *
+ * Los dos caminos son equivalentes a propósito: el vale es la clave que el
+ * administrador ya escribió al principio del alta, y aceptar la clave directa
+ * mantiene el formulario usable si el vale caducó mientras tanto.
  */
 function exigirClaveDeAlta_(params) {
-  var esperada = claveAltaAdmin_();
-  if (!esperada) return;   // sin clave configurada, el alta queda abierta
+  if (!claveAltaAdmin_()) return;   // sin clave configurada, el alta queda abierta
 
-  var recibida = String((params && params.clave_admin) || '');
-  var iguales = recibida.length === esperada.length;
-  var largo = Math.max(recibida.length, esperada.length);
-  for (var i = 0; i < largo; i++) {
-    if (recibida.charAt(i) !== esperada.charAt(i)) iguales = false;
+  var vale = String((params && params.vale_alta) || '');
+  if (vale) {
+    var cache = CacheService.getScriptCache();
+    if (cache.get('vale_' + vale)) {
+      cache.remove('vale_' + vale);   // un solo uso
+      return;
+    }
   }
 
-  if (!iguales) {
-    throw errorApp_(ERR.NO_AUTENTICADO,
-      'La clave de administrador no es correcta. Solo el administrador puede abrir una agenda nueva.');
-  }
+  if (claveDeAltaCoincide_(params && params.clave_admin)) return;
+
+  throw errorApp_(ERR.NO_AUTENTICADO,
+    'La clave de administrador no es correcta o venció. Pedísela de nuevo al administrador.');
 }
 
 /**

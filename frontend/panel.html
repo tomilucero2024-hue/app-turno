@@ -105,11 +105,34 @@
         <p class="apagado">Gestioná turnos, servicios, equipo y horarios desde un solo lugar.</p>
       </div>
 
-      <!-- No hay pestaña de "Crear cuenta" porque no hace falta: entrar con Google
-           crea el usuario solo la primera vez. Y no se pide ninguna clave acá,
-           porque autenticarse no da acceso a nada: la clave maestra se pide
-           recién al crear la agenda, que es lo que el backend valida. -->
+      <!-- Dos caminos distintos a propósito.
+
+           "Ya tengo cuenta" no pide nada: es el barbero entrando un martes
+           cualquiera a ver su agenda.
+
+           "Abrir una agenda" pide primero la clave maestra, que el
+           administrador escribe presencialmente, y recién con la clave validada
+           habilita el ingreso con Google. Así nadie se crea una cuenta por su
+           cuenta. La clave se valida CONTRA EL SERVIDOR: no está en config.js,
+           y lo que queda guardado en el teléfono del barbero es un vale al azar
+           que caduca, nunca la clave. -->
       <div class="tarjeta pila">
+        <div class="nav-pildora" role="tablist" id="tabs-ingreso">
+          <button class="nav-pildora__item" type="button" role="tab" data-modo="ingresar" aria-selected="true">Ya tengo cuenta</button>
+          <button class="nav-pildora__item" type="button" role="tab" data-modo="crear" aria-selected="false">Abrir una agenda</button>
+        </div>
+
+        <div class="campo oculto" id="campo-clave-admin">
+          <label class="campo__etiqueta" for="entrada-clave-admin">Clave de administrador</label>
+          <div class="fila">
+            <input class="entrada crece" id="entrada-clave-admin" type="password"
+                   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                   placeholder="La escribe el administrador">
+            <button class="boton boton--contorno" type="button" id="btn-validar-clave">Validar</button>
+          </div>
+          <span class="campo__ayuda" id="ayuda-clave-admin">Para abrir una agenda nueva hace falta la clave del administrador. Pedísela a él: la escribe y no queda guardada.</span>
+        </div>
+
         <form class="pila" id="form-ingreso" autocomplete="on">
           <div class="campo">
             <label class="campo__etiqueta" for="entrada-email">Correo</label>
@@ -154,8 +177,8 @@
           <label class="campo__etiqueta" for="entrada-negocio">Nombre del negocio</label>
           <input class="entrada" id="entrada-negocio" maxlength="80" required placeholder="Barbería Central">
         </div>
-        <div class="campo">
-          <label class="campo__etiqueta" for="entrada-alta-clave-admin">Clave de Administrador</label>
+        <div class="campo" id="campo-alta-clave-admin">
+          <label class="campo__etiqueta" for="entrada-alta-clave-admin">Clave de administrador</label>
           <!-- `autocomplete="off"` importa acá más que en cualquier otro campo: esta
                clave la escribe el administrador en el dispositivo del barbero, y
                sin esto el navegador ofrece guardarla. El JS además la borra

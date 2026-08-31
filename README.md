@@ -125,9 +125,11 @@ Las dos mitades van juntas: con `TURNSTILE_SECRET` cargado y sin *site key* en e
 
 ### Clave de alta
 
-`CLAVE_ALTA_ADMIN` es la clave maestra que autoriza abrir una agenda. El backend la exige en `registrarCuenta` antes de crear nada, y es el **único** lugar donde se compara.
+`CLAVE_ALTA_ADMIN` es la clave maestra que autoriza abrir una agenda, y el backend es el **único** lugar donde se compara. Dos endpoints la consultan: `verificarClaveAlta`, que la valida al principio del alta y devuelve un vale de un solo uso, y `registrarCuenta`, que exige ese vale o la clave antes de crear nada.
 
-No tiene espejo en el frontend, a propósito. `frontend/js/config.js` se descarga entero en el navegador de cualquier visitante: una copia de la clave ahí quedaría legible en el código de la página, y el barbero que la lee una vez podría abrir todas las agendas que quisiera. Por eso la validación local se sacó del panel — el error llega del servidor.
+No tiene espejo en el frontend, a propósito. `frontend/js/config.js` se descarga entero en el navegador de cualquier visitante: una copia de la clave ahí quedaría legible en el código de la página, y el barbero que la lee una vez podría abrir todas las agendas que quisiera.
+
+`verificarClaveAlta` es el único endpoint sin autenticar que compara un secreto, así que lleva límite de intentos fallidos (`CLAVE_ALTA_FALLIDAS_POR_HORA`, 20). El límite es global porque Apps Script no expone la IP del cliente; un alta legítima gasta un solo intento.
 
 Con la propiedad vacía, el alta queda abierta a cualquiera que inicie sesión.
 
@@ -141,20 +143,21 @@ Publicado en GitHub Pages, hay que agregar el dominio (`usuario.github.io`) en F
 
 ## Dar de alta un negocio
 
-Cada barbería **se crea y organiza su propia agenda**. Lo único que aporta el administrador es la clave maestra, que escribe **presencialmente** en el dispositivo del dueño en el momento del alta. La clave no se manda por mensaje ni se le entrega a nadie.
+Cada barbería **se crea y organiza su propia agenda**. Lo único que aporta el administrador es la clave maestra, que escribe **presencialmente** en el dispositivo del dueño. La clave no se manda por mensaje ni se le entrega a nadie.
 
 El alta es un solo momento, con los dos presentes:
 
-1. El dueño abre `panel.html` **en su propio celular** y toca **Continuar con Google**. Si es la primera vez, Firebase le crea el usuario ahí mismo; no hay formulario de registro ni contraseña que recordar.
-2. Como todavía no tiene negocio, el panel le muestra **Creá tu agenda**. Él carga el nombre del negocio y elige si trabaja solo o con equipo.
-3. El administrador escribe **su clave maestra** en el campo correspondiente, en ese celular, y se envía el formulario.
-4. Se crea la planilla del negocio, su slug y un profesional por defecto. El panel se abre y el dueño ya puede copiar su link de reservas.
+1. El dueño abre `panel.html` **en su propio celular** y toca la pestaña **Abrir una agenda**. Los botones de ingreso aparecen deshabilitados: sin la clave no se puede pasar de ahí.
+2. El administrador escribe **su clave** y toca **Validar**. El servidor la comprueba y devuelve un vale; el campo se vacía solo en ese momento y se habilita el ingreso.
+3. El dueño toca **Continuar con Google**. Si es la primera vez, Firebase le crea el usuario ahí mismo: no hay formulario de registro ni contraseña que recordar.
+4. El panel le muestra **Creá tu agenda**. Carga el nombre del negocio y elige si trabaja solo o con equipo. Ya no se le vuelve a pedir la clave — el vale la reemplaza.
+5. Se crea la planilla del negocio, su slug y un profesional por defecto. El panel se abre y el dueño puede copiar su link de reservas.
 
-A partir de ahí el dueño sigue solo: carga sus servicios, su equipo, sus horarios y sus bloqueos. La sesión de Google le queda guardada en el celular, así que las próximas veces entra directo.
+A partir de ahí el dueño sigue solo: carga sus servicios, su equipo, sus horarios y sus bloqueos. La sesión de Google le queda guardada en el celular, así que las próximas veces entra por **Ya tengo cuenta**, sin clave y sin fricción.
 
-**La clave no queda en el dispositivo.** El campo lleva `autocomplete="off"` para que el navegador no ofrezca guardarla, y el panel la borra del formulario apenas se envía, tanto si el alta salió bien como si falló.
+**La clave no queda en el dispositivo.** Lo único que se guarda es el vale: una cadena al azar que sirve una sola vez y caduca a la media hora. El campo lleva `autocomplete="off"` para que el navegador no ofrezca guardar la clave, y el panel la borra apenas la valida. Si el vale caduca a mitad del trámite, la pantalla de alta vuelve a mostrar el campo para reintentar.
 
-**Qué pasa si alguien entra por su cuenta.** Puede autenticarse con Google —eso está abierto— pero se queda en la pantalla de "Creá tu agenda" sin poder pasar, porque no tiene la clave. No accede a ningún dato de nadie: el backend resuelve el negocio a partir del token verificado, nunca de algo que mande el navegador.
+**Qué pasa si alguien intenta por su cuenta.** Puede entrar por **Ya tengo cuenta** y autenticarse con Google —eso está abierto, y es lo que permite que el ingreso funcione sin fricción— pero queda en la pantalla de "Creá tu agenda" sin poder pasar, porque no tiene la clave ni un vale. No accede a ningún dato de nadie: el backend resuelve el negocio a partir del token verificado, nunca de algo que mande el navegador.
 
 ## Contrato de la API
 
@@ -194,7 +197,7 @@ Dos reglas que no se pueden cambiar sin romper la app:
 
 **GET** (lecturas públicas): `getNegocio`, `getDisponibilidad`, `getTurno`
 
-**POST** (escrituras y acciones con token): `crearTurno`, `cancelarTurno`, `getTurnosPorRango`, `cancelarTurnoDueno`, `marcarEstadoTurno`, `crearServicio`, `editarServicio`, `borrarServicio`, `crearBarbero`, `editarBarbero`, `borrarBarbero`, `getHorarios`, `configurarHorarios`, `crearBloqueo`, `borrarBloqueo`, `getBloqueos`, `bloquearTelefono`, `desbloquearTelefono`, `getListaNegra`, `getEstadisticas`, `registrarCuenta`, `getPerfilCuenta`, `actualizarPerfilCuenta`
+**POST** (escrituras y acciones con token): `crearTurno`, `cancelarTurno`, `getTurnosPorRango`, `cancelarTurnoDueno`, `marcarEstadoTurno`, `crearServicio`, `editarServicio`, `borrarServicio`, `crearBarbero`, `editarBarbero`, `borrarBarbero`, `getHorarios`, `configurarHorarios`, `crearBloqueo`, `borrarBloqueo`, `getBloqueos`, `bloquearTelefono`, `desbloquearTelefono`, `getListaNegra`, `getEstadisticas`, `verificarClaveAlta`, `registrarCuenta`, `getPerfilCuenta`, `actualizarPerfilCuenta`
 
 ## Detalles que no son obvios
 

@@ -48,6 +48,9 @@ var RUTAS_POST = {
   archivarTurnos: epArchivarTurnos_,
 
   // Grupo 3 — cuenta
+  // Sin token a propósito: se llama antes de que el negocio se autentique, para
+  // que el administrador escriba su clave al principio del alta y no al final.
+  verificarClaveAlta: epVerificarClaveAlta_,
   registrarCuenta: epRegistrarCuenta_,
   getPerfilCuenta: epGetPerfilCuenta_,
   actualizarPerfilCuenta: epActualizarPerfilCuenta_
