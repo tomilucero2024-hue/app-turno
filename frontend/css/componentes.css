@@ -1317,6 +1317,18 @@ button.item { text-align: left; width: 100%; }
      resuelve a 0 salvo que el viewport declare `viewport-fit=cover`, que es lo
      que ahora hacen index.html y panel.html; el `max()` cubre el resto. */
   padding-bottom: max(8px, env(safe-area-inset-bottom));
+
+  /* Capa propia de composición. Sin esto, Safari de iPhone repinta la barra
+     recién cuando termina el desplazamiento, y durante la animación con la que
+     se achica la barra de direcciones la deja unos pixeles arriba del borde. */
+  transform: translateZ(0);
+
+  /* Faldón: una copia sólida de la barra pintada 80px más abajo. Si el
+     navegador llega a dejar un hueco entre la barra y el borde real de la
+     pantalla, ahí se ve este bloque y no el contenido de la página. Cuando la
+     barra queda donde corresponde, el faldón cae fuera de la pantalla y no se
+     ve. Es sombra, así que no ocupa lugar ni agrega scroll. */
+  box-shadow: 0 80px 0 0 #10131C;
 }
 .nav-item {
   display: flex;

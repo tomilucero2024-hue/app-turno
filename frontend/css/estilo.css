@@ -126,6 +126,17 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-padding-top: calc(var(--alto-barra) + var(--e4));
+
+  /* El recorte horizontal va acá y no en `body`. Puesto en el body, el
+     navegador tiene que propagar ese overflow al viewport, y en Safari de iPhone
+     eso deja al `position: fixed` de la barra inferior atado al último alto que
+     se calculó: cuando la barra de direcciones se achica al desplazar, el
+     viewport crece pero la navegación se queda flotando donde estaba el borde
+     anterior, con la página asomándose por debajo.
+     `clip` recorta sin crear un contenedor de scroll, que es justo lo que hace
+     falta; `hidden` queda de reserva para los Safari anteriores al 16. */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -139,7 +150,6 @@ body {
   background: var(--tinta-900);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
 }
 
 h1, h2, h3, h4 {

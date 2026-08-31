@@ -18,7 +18,7 @@
  * origen antes de decidir cualquier estrategia.
  */
 
-const CACHE_NAME = 'app-turno-cache-v4';
+const CACHE_NAME = 'app-turno-cache-v5';
 
 const RECURSOS_ESTATICOS = [
   './',
