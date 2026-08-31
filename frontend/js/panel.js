@@ -497,6 +497,13 @@
   };
 
   function abrirPanel() {
+    // Los accesos directos del manifest (mantener apretado el icono en Android)
+    // apuntan a `panel.html#agenda`, `#estadisticas`, etc. Se leen acá y no al
+    // arrancar el módulo porque recién en este punto existe `SECCIONES`, y
+    // porque solo tiene sentido una vez resuelta la sesión.
+    const seccionDelHash = (location.hash || '').replace('#', '');
+    if (SECCIONES.some((s) => s.id === seccionDelHash)) estado.seccion = seccionDelHash;
+
     $('#titulo-panel').textContent = estado.perfil.nombre_negocio;
     document.title = `Panel · ${estado.perfil.nombre_negocio}`;
 

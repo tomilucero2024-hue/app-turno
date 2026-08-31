@@ -222,7 +222,10 @@
      link es el único camino al panel desde un celular. -->
 <footer class="contenedor centrado chico tenue" style="padding-block: var(--e6)">
   <p>Agenda online · Reservá sin crear cuenta</p>
-  <p style="margin-top: var(--e2)"><a href="panel.html">Soy el dueño de un negocio</a></p>
+  <!-- `ui.js` pone acá el botón de instalar, si el navegador puede y la app no
+       está instalada todavía. Si no, queda vacío y no ocupa nada. -->
+  <div id="instalar-app" style="margin-top: var(--e3)"></div>
+  <p style="margin-top: var(--e3)"><a href="panel.html">Soy el dueño de un negocio</a></p>
 </footer>
 
 <script src="js/config.js"></script>

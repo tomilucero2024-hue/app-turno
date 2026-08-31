@@ -18,7 +18,7 @@
  * origen antes de decidir cualquier estrategia.
  */
 
-const CACHE_NAME = 'app-turno-cache-v3';
+const CACHE_NAME = 'app-turno-cache-v4';
 
 const RECURSOS_ESTATICOS = [
   './',
@@ -44,7 +44,8 @@ const RECURSOS_ESTATICOS = [
   './img/icono-192.png',
   './img/icono-512.png',
   './img/icono-maskable-512.png',
-  './manifest.json'
+  './manifest.json',
+  './manifest-panel.json'
 ];
 
 self.addEventListener('install', (e) => {

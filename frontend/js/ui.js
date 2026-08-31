@@ -580,10 +580,115 @@ const UI = (() => {
     URL.revokeObjectURL(link.href);
   }
 
+  // --- Instalación como app -------------------------------------------------
+
+  /**
+   * Ofrece instalar la app en la pantalla de inicio.
+   *
+   * Los dos caminos son distintos y no hay uno solo que sirva para ambos:
+   *
+   * - Android y escritorio disparan `beforeinstallprompt` cuando la página
+   *   cumple los requisitos (manifest con iconos, service worker, HTTPS). Se
+   *   guarda el evento y se llama a `prompt()` desde un botón nuestro, porque
+   *   el navegador solo acepta el pedido si sale de un gesto del usuario.
+   *
+   * - iOS no dispara nada y no tiene API de instalación: la única forma es
+   *   Compartir -> Agregar a inicio, a mano. Ahí lo único que se puede hacer es
+   *   explicarlo, y se explica solo en Safari, que es el único navegador de
+   *   iPhone que puede hacerlo.
+   *
+   * El botón se dibuja en el elemento `#instalar-app` de cada página, y no
+   * aparece si la app ya está instalada.
+   */
+  function prepararInstalacion() {
+    // Este archivo se carga también fuera del navegador (los tests lo evalúan
+    // en un sandbox de Node con un `window` mínimo). Sin esta guarda, engancharse
+    // a un evento acá rompe la carga del módulo entero.
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+
+    let pedidoDiferido = null;
+
+    const yaEstaInstalada = () =>
+      (typeof window.matchMedia === 'function' &&
+        window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+
+    const esDeApple = () => {
+      const ua = navigator.userAgent;
+      // iPadOS 13+ se anuncia como Mac; los puntos táctiles lo delatan.
+      return /iPad|iPhone|iPod/.test(ua) ||
+        (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    };
+
+    const ranura = () => $('#instalar-app');
+
+    function ofrecer(texto, alTocar) {
+      const caja = ranura();
+      if (!caja || yaEstaInstalada()) return;
+      pintar(caja, el('button', {
+        clase: 'boton boton--secundario boton--chico', type: 'button', onClick: alTocar
+      }, [ico('compartir', 'ico ico--sm'), document.createTextNode(texto)]));
+    }
+
+    function explicarEnIOS() {
+      dialogo({
+        titulo: 'Agregar a la pantalla de inicio',
+        cuerpo: el('div', { clase: 'pila' }, [
+          el('p', { clase: 'apagado', texto:
+            'En el iPhone la instalación la hace Safari, no la página. Son tres toques:' }),
+          el('ol', { clase: 'pila pila--sm apagado', style: 'margin:0; padding-left: 1.2em' }, [
+            el('li', { texto: 'Tocá el botón Compartir, el cuadradito con la flecha hacia arriba.' }),
+            el('li', { texto: 'Deslizá y elegí "Agregar a pantalla de inicio".' }),
+            el('li', { texto: 'Confirmá con "Agregar", arriba a la derecha.' })
+          ]),
+          el('p', { clase: 'chico tenue', texto:
+            'Queda como una app más, con su icono y a pantalla completa. Si no ves el botón Compartir, ' +
+            'abrí esta página en Safari: desde otros navegadores el iPhone no deja instalarla.' })
+        ])
+      });
+    }
+
+    // Android y escritorio: el navegador avisa cuando se puede instalar.
+    window.addEventListener('beforeinstallprompt', (evento) => {
+      // Sin esto el navegador muestra su propio cartel, que aparece cuando él
+      // quiere y no se puede volver a pedir si el usuario lo descarta.
+      evento.preventDefault();
+      pedidoDiferido = evento;
+      ofrecer('Instalar app', async () => {
+        if (!pedidoDiferido) return;
+        pedidoDiferido.prompt();
+        const { outcome } = await pedidoDiferido.userChoice;
+        // El evento sirve una sola vez: si lo rechazó, el navegador lo vuelve a
+        // disparar más adelante por su cuenta.
+        pedidoDiferido = null;
+        if (outcome === 'accepted') pintar(ranura(), []);
+        else ofrecer('Instalar app', () => {});
+      });
+    });
+
+    window.addEventListener('appinstalled', () => {
+      pedidoDiferido = null;
+      const caja = ranura();
+      if (caja) pintar(caja, []);
+      tostada('¡Listo! Ya la tenés en tu pantalla de inicio.', 'exito');
+    });
+
+    // iOS: no hay evento, así que se ofrece igual y se explica el camino manual.
+    if (esDeApple() && !yaEstaInstalada()) {
+      const montar = () => ofrecer('Agregar a inicio', explicarEnIOS);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', montar, { once: true });
+      } else {
+        montar();
+      }
+    }
+  }
+
   /** Lee un parámetro de la query string. */
   const parametro = (nombre) => new URLSearchParams(location.search).get(nombre);
 
   iniciarProgreso();
+  prepararInstalacion();
 
   return {
     $, $$, el, ico, pintar, esqueletos, esqueletoDe, vacio, aviso,
@@ -592,6 +697,7 @@ const UI = (() => {
     precio, duracion, sumarMinutos, insignia, telefono, formatearTelefono, parametro,
     ahoraHora,
     aplicarMascaraTelefono, linkGoogleCalendar, descargarIcs, descargarCsv,
+    prepararInstalacion,
     ESTADOS, DIAS_CORTOS, DIAS_LARGOS
   };
 })();

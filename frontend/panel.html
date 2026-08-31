@@ -17,7 +17,9 @@
 
   <link rel="stylesheet" href="css/estilo.css">
   <link rel="stylesheet" href="css/componentes.css">
-  <link rel="manifest" href="manifest.json">
+  <!-- Manifest propio: `start_url` decide qué abre el icono, y el del cliente
+       apunta a la pantalla de reservas. -->
+  <link rel="manifest" href="manifest-panel.json">
   <link rel="icon" type="image/svg+xml" href="img/poste-barbero.svg">
   <!-- iOS ignora el manifest y solo lee esta etiqueta, y solo acepta PNG. Sin
        ella, "Agregar a inicio" guarda una captura de la página como icono. -->
@@ -227,6 +229,13 @@
   </section>
 
 </main>
+
+<!-- El pie existe solo para alojar el botón de instalar en un lugar estable:
+     `#barra-acciones` y `#acciones-link` se repintan al cambiar la sesión y se
+     lo llevarían puesto. -->
+<footer class="contenedor centrado" style="padding-block: var(--e5)">
+  <div id="instalar-app"></div>
+</footer>
 
 <!-- Arranca oculta y la muestra `panel.js` recién cuando la sesión está abierta
      y el panel visible. Antes se dibujaba encima del formulario de ingreso, con

@@ -161,6 +161,29 @@ A partir de ahí el dueño sigue solo: carga sus servicios, su equipo, sus horar
 
 **Qué pasa si alguien intenta por su cuenta.** Puede entrar por **Ya tengo cuenta** y autenticarse con Google —eso está abierto, y es lo que permite que el ingreso funcione sin fricción— pero queda en la pantalla de "Creá tu agenda" sin poder pasar, porque no tiene la clave ni un vale. No accede a ningún dato de nadie: el backend resuelve el negocio a partir del token verificado, nunca de algo que mande el navegador.
 
+## Instalación como app
+
+La app se instala en la pantalla de inicio y se abre a pantalla completa, sin barra del navegador.
+
+Son **dos apps distintas**, con un manifest cada una, porque `start_url` decide qué abre el icono y solo puede apuntar a un lado:
+
+| Manifest | Instala | Abre |
+|---|---|---|
+| `manifest.json` | "Turnos" — para el cliente | `index.html` |
+| `manifest-panel.json` | "Mi agenda" — para el dueño | `panel.html` |
+
+En Android y escritorio aparece un botón **Instalar app** al pie de la página, que dispara el pedido del navegador. El botón sale del evento `beforeinstallprompt`: se lo intercepta para que el navegador no muestre su propio cartel cuando quiera, y se lo lanza desde un gesto del usuario, que es la única forma que acepta.
+
+En iPhone no hay API de instalación: la hace Safari con Compartir → Agregar a pantalla de inicio. El botón ahí abre un diálogo con los tres pasos, y solo aparece en Safari, porque desde otros navegadores el iPhone no deja instalar.
+
+El manifest del panel trae **accesos directos**: manteniendo apretado el icono en Android salen "Agenda de hoy", "Números" y "Servicios", que abren esa sección directamente. Los resuelve `panel.html#seccion`, que `abrirPanel()` lee del hash.
+
+### Sobre los widgets de pantalla de inicio
+
+Una app web **no puede** poner un widget en la pantalla de inicio de Android ni de iPhone. Los widgets de Android son `RemoteViews` y los de iPhone son WidgetKit: los dos exigen código nativo empaquetado en un APK o en un `.ipa`, y ninguno de los dos sistemas expone una forma de que una página los provea. La especificación de widgets para PWA existe, pero es del panel de widgets de Windows 11 — no de un teléfono.
+
+Lo más cerca que se llega en el teléfono son los accesos directos del manifest: no muestran datos en vivo, pero dan un menú de atajos al mantener apretado el icono. Para un widget de verdad —el turno siguiente en la pantalla de inicio— habría que envolver la app en una aplicación nativa, por ejemplo con una Trusted Web Activity en Android, y escribir el widget aparte.
+
 ## Contrato de la API
 
 Dos reglas que no se pueden cambiar sin romper la app:

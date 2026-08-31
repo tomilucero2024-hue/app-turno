@@ -5,12 +5,53 @@ const vm = require('vm');
 
 console.log('\n--- Verificación Integral de Helpers y Módulos Frontend ---');
 
-// 1. Validar manifest.json
-const manifestPath = path.join(__dirname, '..', 'frontend', 'manifest.json');
-const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-assert.strictEqual(manifest.name, 'Turnos - Sistema de Reservas');
-assert.strictEqual(manifest.display, 'standalone');
-console.log('  ok  manifest.json es JSON válido y tiene estructura PWA');
+// 1. Validar los dos manifests
+//
+// Son dos y no uno porque `start_url` decide qué abre el icono instalado, y
+// solo puede apuntar a un lado: con un manifest compartido, el dueño instalaba
+// el panel y le abría la pantalla de buscar barbería.
+const dirFrontend = path.join(__dirname, '..', 'frontend');
+const leerManifest = (nombre) =>
+  JSON.parse(fs.readFileSync(path.join(dirFrontend, nombre), 'utf-8'));
+
+const manifest = leerManifest('manifest.json');
+const manifestPanel = leerManifest('manifest-panel.json');
+
+[['manifest.json', manifest, './index.html'],
+ ['manifest-panel.json', manifestPanel, './panel.html']].forEach(([nombre, m, inicio]) => {
+  assert.strictEqual(m.display, 'standalone', nombre + ': display');
+  assert.strictEqual(m.start_url, inicio, nombre + ': start_url');
+  assert.ok(m.name && m.short_name, nombre + ': falta name o short_name');
+
+  // Chrome exige un icono de 192 y uno de 512 para ofrecer la instalación, y
+  // Android necesita uno maskable para no recortar el logo dentro del círculo.
+  const porTamano = (t) => m.icons.some((i) => i.sizes === t && i.type === 'image/png');
+  assert.ok(porTamano('192x192'), nombre + ': falta el icono PNG de 192');
+  assert.ok(porTamano('512x512'), nombre + ': falta el icono PNG de 512');
+  assert.ok(m.icons.some((i) => (i.purpose || '').includes('maskable')),
+    nombre + ': falta un icono maskable');
+
+  m.icons.forEach((i) => {
+    const ruta = path.join(dirFrontend, i.src);
+    assert.ok(fs.existsSync(ruta), nombre + ': el icono ' + i.src + ' no existe');
+  });
+});
+
+assert.notStrictEqual(manifest.start_url, manifestPanel.start_url,
+  'Dos manifests con el mismo start_url se instalan como la misma app');
+console.log('  ok  los dos manifests son válidos y sus iconos existen');
+
+// Los accesos directos del panel salen al mantener apretado el icono en Android.
+assert.ok(manifestPanel.shortcuts.length >= 1, 'El panel tendría que tener accesos directos');
+manifestPanel.shortcuts.forEach((a) => {
+  assert.ok(a.name && a.url, 'Acceso directo sin nombre o sin url');
+  const seccion = a.url.split('#')[1];
+  assert.ok(seccion, 'El acceso directo ' + a.name + ' tiene que apuntar a una sección con #');
+  const panelJs = fs.readFileSync(path.join(dirFrontend, 'js', 'panel.js'), 'utf-8');
+  assert.ok(panelJs.includes("id: '" + seccion + "'"),
+    'El acceso directo ' + a.name + ' apunta a "' + seccion + '", que no es una sección del panel');
+});
+console.log('  ok  los accesos directos del panel apuntan a secciones que existen');
 
 // 2. Cargar UI en sandbox
 const uiPath = path.join(__dirname, '..', 'frontend', 'js', 'ui.js');

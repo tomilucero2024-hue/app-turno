@@ -1,13 +1,19 @@
 {
-  "name": "Turnos - Sistema de Reservas",
+  "name": "Reservá tu turno",
   "short_name": "Turnos",
-  "description": "Reservá tu turno en segundos sin registros pesados",
+  "description": "Reservá tu turno en la barbería, sin crear cuenta.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B0D13",
   "theme_color": "#0B0D13",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": [
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "./img/icono-192.png",

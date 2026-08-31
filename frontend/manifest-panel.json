@@ -1,0 +1,84 @@
+{
+  "name": "Panel del negocio",
+  "short_name": "Mi agenda",
+  "description": "Gestioná turnos, servicios, equipo y horarios.",
+  "start_url": "./panel.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0D13",
+  "theme_color": "#0B0D13",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "./img/icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./img/poste-barbero.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agenda de hoy",
+      "short_name": "Agenda",
+      "description": "Los turnos del día",
+      "url": "./panel.html#agenda",
+      "icons": [
+        {
+          "src": "./img/icono-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Números",
+      "short_name": "Números",
+      "description": "Facturación y estadísticas",
+      "url": "./panel.html#estadisticas",
+      "icons": [
+        {
+          "src": "./img/icono-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Servicios",
+      "short_name": "Servicios",
+      "description": "Precios y duraciones",
+      "url": "./panel.html#servicios",
+      "icons": [
+        {
+          "src": "./img/icono-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
