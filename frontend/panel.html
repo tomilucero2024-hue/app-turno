@@ -114,6 +114,11 @@
             <label class="campo__etiqueta" for="entrada-clave">Contraseña</label>
             <input class="entrada" id="entrada-clave" type="password" autocomplete="current-password" required minlength="6" placeholder="Mínimo 6 caracteres">
           </div>
+          <div class="campo oculto" id="campo-clave-admin">
+            <label class="campo__etiqueta" for="entrada-clave-admin">Clave de Administrador</label>
+            <input class="entrada" id="entrada-clave-admin" type="password" placeholder="Tu clave maestra para dar de alta">
+            <span class="campo__ayuda">Solo requerida para crear nuevas cuentas.</span>
+          </div>
           <div id="error-ingreso"></div>
           <button class="boton boton--primario boton--bloque" type="submit" id="btn-ingresar">Ingresar</button>
           <button class="boton boton--fantasma boton--chico" type="button" id="btn-olvide">Olvidé mi contraseña</button>
@@ -148,6 +153,11 @@
         <div class="campo">
           <label class="campo__etiqueta" for="entrada-negocio">Nombre del negocio</label>
           <input class="entrada" id="entrada-negocio" maxlength="80" required placeholder="Barbería Central">
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="entrada-alta-clave-admin">Clave de Administrador</label>
+          <input class="entrada" id="entrada-alta-clave-admin" type="password" required placeholder="Clave maestra para autorizar el alta">
+          <span class="campo__ayuda">Solo el administrador puede autorizar la apertura de una nueva agenda.</span>
         </div>
         <div class="campo">
           <span class="campo__etiqueta">¿Cómo trabajás?</span>

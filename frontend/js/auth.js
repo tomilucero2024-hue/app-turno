@@ -40,7 +40,8 @@ const Auth = (() => {
     'auth/network-request-failed': 'No pudimos conectarnos. Revisá tu conexión.',
     'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase. Agregalo en Authentication → Settings → Dominios autorizados.',
     'auth/operation-not-supported-in-this-environment': 'Este navegador no admite esa forma de ingreso. Probá con el correo y la contraseña.',
-    'auth/operation-not-allowed': 'Ese método de ingreso no está habilitado en Firebase.'
+    'auth/operation-not-allowed': 'Ese método de ingreso no está habilitado en Firebase.',
+    'auth/admin-restricted-operation': 'Este correo no está habilitado en el sistema. Contactá al administrador para solicitar acceso.'
   };
 
   function mensajeDeError(err) {

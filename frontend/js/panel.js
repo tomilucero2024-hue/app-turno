@@ -92,6 +92,10 @@
       abrirPanel();
     } catch (err) {
       if (err.codigo === 'SIN_CUENTA') {
+        const claveGuardada = sessionStorage.getItem('clave_admin_valida');
+        if (claveGuardada && $('#entrada-alta-clave-admin')) {
+          $('#entrada-alta-clave-admin').value = claveGuardada;
+        }
         mostrarVista('alta');
         return;
       }
@@ -106,6 +110,8 @@
     const tabBotones = UI.$$('#tabs-ingreso [data-modo]');
     const btnSubmit = $('#btn-ingresar');
     const btnOlvide = $('#btn-olvide');
+    const campoClaveAdmin = $('#campo-clave-admin');
+    const entradaClaveAdmin = $('#entrada-clave-admin');
 
     tabBotones.forEach((boton) => {
       boton.addEventListener('click', () => {
@@ -114,9 +120,13 @@
         if (modo === 'crear') {
           btnSubmit.textContent = 'Crear cuenta';
           btnOlvide.classList.add('oculto');
+          campoClaveAdmin?.classList.remove('oculto');
+          if (entradaClaveAdmin) entradaClaveAdmin.required = true;
         } else {
           btnSubmit.textContent = 'Ingresar';
           btnOlvide.classList.remove('oculto');
+          campoClaveAdmin?.classList.add('oculto');
+          if (entradaClaveAdmin) entradaClaveAdmin.required = false;
         }
         pintar($('#error-ingreso'), []);
       });
@@ -129,6 +139,16 @@
       if (!email || !clave) return;
 
       pintar($('#error-ingreso'), []);
+
+      if (modo === 'crear') {
+        const claveAdminIngresada = (entradaClaveAdmin?.value || '').trim();
+        const claveAdminEsperada = CONFIG.CLAVE_ADMIN || 'admin2026';
+        if (claveAdminIngresada !== claveAdminEsperada) {
+          pintar($('#error-ingreso'), UI.aviso('Clave de administrador incorrecta. Solo el administrador puede autorizar nuevas cuentas.'));
+          return;
+        }
+      }
+
       await conCarga(btnSubmit, async () => {
         try {
           if (modo === 'crear') {
@@ -144,6 +164,20 @@
 
     $('#btn-google').addEventListener('click', async () => {
       pintar($('#error-ingreso'), []);
+
+      if (modo === 'crear') {
+        const claveAdminIngresada = (entradaClaveAdmin?.value || '').trim();
+        const claveAdminEsperada = CONFIG.CLAVE_ADMIN || 'admin2026';
+        if (claveAdminIngresada !== claveAdminEsperada) {
+          pintar($('#error-ingreso'), UI.aviso('Ingresá la clave de administrador correcta arriba antes de continuar con Google.'));
+          entradaClaveAdmin?.focus();
+          return;
+        }
+        try {
+          sessionStorage.setItem('clave_admin_valida', claveAdminIngresada);
+        } catch (e) {}
+      }
+
       await conCarga($('#btn-google'), async () => {
         try {
           await Auth.ingresarConGoogle();
@@ -181,8 +215,17 @@
     $('#form-alta').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nombre = $('#entrada-negocio').value.trim();
+      const claveAdminIngresada = ($('#entrada-alta-clave-admin')?.value || '').trim();
+      const claveAdminEsperada = CONFIG.CLAVE_ADMIN || 'admin2026';
+
       if (!nombre) return;
+
       pintar($('#error-alta'), []);
+
+      if (claveAdminIngresada !== claveAdminEsperada) {
+        pintar($('#error-alta'), UI.aviso('Clave de administrador incorrecta. Solo el administrador puede autorizar la apertura de una nueva agenda.'));
+        return;
+      }
 
       await conCarga($('#btn-alta'), async () => {
         try {

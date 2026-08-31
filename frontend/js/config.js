@@ -38,7 +38,13 @@ const CONFIG = {
   TURNSTILE_SITE_KEY: '',
 
   /** Cuántos días hacia adelante se ofrecen en la tira de fechas. */
-  DIAS_A_MOSTRAR: 21
+  DIAS_A_MOSTRAR: 21,
+
+  /**
+   * Clave maestra de administrador para crear nuevas cuentas o agendas.
+   * Cambiala por la contraseña que quieras usar vos.
+   */
+  CLAVE_ADMIN: 'admin2026'
 };
 
 /** URL pública de la pantalla de reserva, para los comprobantes de WhatsApp. */
