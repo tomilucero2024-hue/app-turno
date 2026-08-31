@@ -8,8 +8,8 @@
   "theme_color": "#1E1E1E",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%231a1a1a'/%3E%3Crect x='64' y='64' width='384' height='384' rx='96' fill='none' stroke='%23C5A059' stroke-width='24'/%3E%3Cpath d='M160 256l64 64 128-128' fill='none' stroke='%23C5A059' stroke-width='36' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      "sizes": "192x192 512x512",
+      "src": "./img/poste-barbero.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }

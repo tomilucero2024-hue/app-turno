@@ -467,11 +467,22 @@ select.entrada option { background: var(--tinta-800); color: var(--texto); }
 .marca__sello {
   display: grid;
   place-items: center;
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: linear-gradient(160deg, var(--oro-400), var(--oro-700));
-  color: var(--tinta-900);
-  box-shadow: var(--halo-oro);
+  width: 38px; height: 38px;
+  border-radius: var(--r-md);
+  background: var(--vidrio-alto);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-1);
+  overflow: hidden;
+  padding: 3px;
+}
+.marca__sello .ico {
+  color: var(--oro-400);
+}
+.marca__icono {
+  width: 22px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
 }
 .marca__nombre {
   font-family: var(--fuente-titulo);
