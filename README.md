@@ -172,7 +172,7 @@ Son **dos apps distintas**, con un manifest cada una, porque `start_url` decide 
 | `manifest.json` | "Turnos" — para el cliente | `index.html` |
 | `manifest-panel.json` | "Mi agenda" — para el dueño | `panel.html` |
 
-En Android y escritorio aparece un botón **Instalar app** al pie de la página, que dispara el pedido del navegador. El botón sale del evento `beforeinstallprompt`: se lo intercepta para que el navegador no muestre su propio cartel cuando quiera, y se lo lanza desde un gesto del usuario, que es la única forma que acepta.
+En Android y escritorio aparece un botón **Instalar app** en la barra de arriba, que dispara el pedido del navegador. Va en la barra y no en el pie porque en el escritorio obligaba a bajar hasta el final para encontrarlo, y en el celular quedaba tapado por la navegación fija de abajo; en pantallas de menos de 720px se queda solo con el icono, con el texto en `aria-label` y en `title`. El botón sale del evento `beforeinstallprompt`: se lo intercepta para que el navegador no muestre su propio cartel cuando quiera, y se lo lanza desde un gesto del usuario, que es la única forma que acepta.
 
 En iPhone no hay API de instalación: la hace Safari con Compartir → Agregar a pantalla de inicio. El botón ahí abre un diálogo con los tres pasos, y solo aparece en Safari, porque desde otros navegadores el iPhone no deja instalar.
 

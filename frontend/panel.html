@@ -83,7 +83,13 @@
       <span class="marca__sello"><img src="img/poste-barbero.svg" alt="Logo" class="marca__icono"></span>
       <span class="marca__nombre">Panel del negocio</span>
     </span>
-    <div class="fila" id="barra-acciones"></div>
+    <div class="fila">
+      <!-- Ranura estable para el boton de instalar. Va fuera de
+           `#barra-acciones` porque ese nodo se repinta entero cada vez que
+           cambia la sesion y se lo llevaria puesto. -->
+      <div id="instalar-app"></div>
+      <div class="fila" id="barra-acciones"></div>
+    </div>
   </div>
 </header>
 
@@ -229,13 +235,6 @@
   </section>
 
 </main>
-
-<!-- El pie existe solo para alojar el botón de instalar en un lugar estable:
-     `#barra-acciones` y `#acciones-link` se repintan al cambiar la sesión y se
-     lo llevarían puesto. -->
-<footer class="contenedor centrado" style="padding-block: var(--e5)">
-  <div id="instalar-app"></div>
-</footer>
 
 <!-- Arranca oculta y la muestra `panel.js` recién cuando la sesión está abierta
      y el panel visible. Antes se dibujaba encima del formulario de ingreso, con

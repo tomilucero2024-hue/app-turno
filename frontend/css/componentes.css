@@ -229,6 +229,15 @@
 
 .boton--bloque { width: 100%; }
 .boton--chico  { padding: 7px 14px; font-size: 0.8rem; }
+
+/* El boton de instalar comparte la barra de arriba con la marca y con las
+   demas acciones. En un telefono de 375px los tres no entran, asi que ahi se
+   queda solo con el icono; el texto sigue disponible como `aria-label` y como
+   `title`, de modo que ni el lector de pantalla ni el globito lo pierden. */
+@media (max-width: 720px) {
+  .boton--instalar .boton__texto { display: none; }
+  .boton--instalar { padding-inline: 9px; }
+}
 .boton--grande { padding: 15px 30px; font-size: 0.98rem; }
 
 /* Botón de icono: el círculo de vidrio del sistema. */

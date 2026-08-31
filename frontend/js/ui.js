@@ -622,12 +622,28 @@ const UI = (() => {
 
     const ranura = () => $('#instalar-app');
 
+    // El boton vive en la barra de arriba, que esta a la vista apenas se abre la
+    // pagina. Antes estaba en el pie: en escritorio habia que bajar hasta el
+    // final para encontrarlo, y en el celular quedaba tapado por la navegacion
+    // fija de abajo. En pantallas angostas se queda solo con el icono, porque al
+    // lado de la marca y de las otras acciones no entra el texto.
     function ofrecer(texto, alTocar) {
       const caja = ranura();
       if (!caja || yaEstaInstalada()) return;
       pintar(caja, el('button', {
-        clase: 'boton boton--secundario boton--chico', type: 'button', onClick: alTocar
-      }, [ico('compartir', 'ico ico--sm'), document.createTextNode(texto)]));
+        clase: 'boton boton--secundario boton--chico boton--instalar',
+        type: 'button',
+        title: texto,
+        'aria-label': texto,
+        onClick: alTocar
+      }, [
+        // El mismo glifo de "compartir" en los dos casos: en el iPhone es
+        // literalmente el boton que hay que tocar despues, y en Android se lee
+        // como una accion. Un "+" suelto en la barra del panel se confundiria
+        // con "agregar un turno".
+        ico('compartir', 'ico ico--sm'),
+        el('span', { clase: 'boton__texto', texto: texto })
+      ]));
     }
 
     function explicarEnIOS() {
