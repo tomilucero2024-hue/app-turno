@@ -70,13 +70,24 @@ const servidor = http.createServer((solicitud, respuesta) => {
   });
 });
 
-servidor.listen(PUERTO, () => {
-  console.log('==================================================');
-  console.log(` Servidor local activo en: http://localhost:${PUERTO}`);
-  console.log('==================================================');
-  console.log(' Enlaces disponibles:');
-  console.log(` - Demo interactiva (datos mock): http://localhost:${PUERTO}/_demo.html`);
-  console.log(` - Reserva cliente:              http://localhost:${PUERTO}/index.html`);
-  console.log(` - Panel de administración:      http://localhost:${PUERTO}/panel.html`);
-  console.log('==================================================');
-});
+function iniciarServidor(puerto) {
+  servidor.listen(puerto, () => {
+    console.log('==================================================');
+    console.log(` Servidor local activo en: http://localhost:${puerto}`);
+    console.log('==================================================');
+    console.log(' Enlaces disponibles:');
+    console.log(` - Hub de pruebas / Demo:        http://localhost:${puerto}/_demo.html`);
+    console.log(` - Pantalla de Reserva Cliente:  http://localhost:${puerto}/index.html?n=demo`);
+    console.log(` - Panel de Administración:      http://localhost:${puerto}/panel.html`);
+    console.log('==================================================');
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(` El puerto ${puerto} está ocupado. Intentando en http://localhost:${puerto + 1}...`);
+      iniciarServidor(puerto + 1);
+    } else {
+      console.error('Error al iniciar el servidor:', err);
+    }
+  });
+}
+
+iniciarServidor(Number(PUERTO));
