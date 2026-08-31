@@ -38,23 +38,18 @@ const CONFIG = {
   TURNSTILE_SITE_KEY: '',
 
   /** Cuántos días hacia adelante se ofrecen en la tira de fechas. */
-  DIAS_A_MOSTRAR: 21,
-
-  /**
-   * Clave maestra que el panel pide antes de abrir una agenda nueva.
-   *
-   * ESTO NO ES UNA MEDIDA DE SEGURIDAD y no puede serlo: este archivo se
-   * descarga entero en el navegador de cualquier visitante, así que la clave
-   * queda a la vista y la comparación se saltea desde la consola. Sirve para
-   * dar el error al instante, sin ir al servidor.
-   *
-   * Quien autoriza de verdad es el backend, comparando contra la propiedad de
-   * script `CLAVE_ALTA_ADMIN`. Esa es la que hay que cargar; esta se puede
-   * dejar vacía y el flujo sigue funcionando igual (el error llega desde el
-   * servidor en vez de al instante). Si la ponés, tiene que coincidir.
-   */
-  CLAVE_ADMIN: ''
+  DIAS_A_MOSTRAR: 21
 };
+
+/*
+ * Acá NO va la clave maestra que autoriza abrir una agenda.
+ *
+ * Este archivo se descarga entero en el navegador de cualquier visitante, así
+ * que una clave puesta acá queda legible en el código de la página: el barbero
+ * que la lee una vez puede abrir todas las agendas que quiera. Vive en la
+ * propiedad de script `CLAVE_ALTA_ADMIN` del backend, que es el único lugar
+ * donde se compara.
+ */
 
 /** URL pública de la pantalla de reserva, para los comprobantes de WhatsApp. */
 CONFIG.URL_SITIO = location.origin + location.pathname.replace(/panel\.html$/, 'index.html');

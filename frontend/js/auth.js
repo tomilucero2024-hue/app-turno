@@ -2,9 +2,10 @@
  * Autenticación con Firebase, envuelta para que el resto del panel no dependa
  * del SDK.
  *
- * No hay registro: el alta de usuarios está deshabilitada en la consola de
- * Firebase y las cuentas las crea el administrador a mano, así que este módulo
- * solo autentica gente que ya existe. Por eso no expone `crearConEmail`.
+ * El ingreso con Google crea el usuario de Firebase solo, la primera vez. Eso es
+ * deliberado y no hay que cerrarlo: autenticarse no da acceso a nada: el que
+ * decide si existe una agenda es el backend, que exige la clave maestra en
+ * `registrarCuenta`. Por eso este módulo no necesita exponer `crearConEmail`.
  *
  * El ID token NUNCA se guarda en localStorage: se pide con `getIdToken()` en
  * cada llamada al backend y vive solo en memoria. El SDK ya persiste su propio
@@ -45,10 +46,10 @@ const Auth = (() => {
     'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase. Agregalo en Authentication → Settings → Dominios autorizados.',
     'auth/operation-not-supported-in-this-environment': 'Este navegador no admite esa forma de ingreso. Probá con el correo y la contraseña.',
     'auth/operation-not-allowed': 'Ese método de ingreso no está habilitado en Firebase.',
-    // El registro público está deshabilitado a propósito: las cuentas las crea
-    // el administrador. Firebase devuelve este código a cualquiera que intente
-    // entrar con un correo que no dio de alta todavía.
-    'auth/admin-restricted-operation': 'Este correo no tiene acceso al panel. Las cuentas las crea el administrador: pedile que te dé de alta.'
+    // Solo aparece si alguien cerró "Enable create" en la consola de Firebase.
+    // No es la configuración esperada: con el registro cerrado, el ingreso con
+    // Google deja de funcionar para todo negocio nuevo.
+    'auth/admin-restricted-operation': 'El registro está cerrado en Firebase. Habilitá "Enable create" en Authentication → Settings.'
   };
 
   function mensajeDeError(err) {

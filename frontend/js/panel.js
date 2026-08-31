@@ -185,34 +185,42 @@
       });
     });
 
+    const entradaClave = $('#entrada-alta-clave-admin');
+
+    /**
+     * Borra la clave del administrador del formulario.
+     *
+     * La escribe él en el dispositivo del barbero y se va: dejarla en el input
+     * significa que queda a la vista de quien apriete "mostrar contraseña" o
+     * abra el inspector, en una máquina que no es la suya. Se llama pase lo que
+     * pase, también cuando el alta falla.
+     */
+    const olvidarClave = () => { if (entradaClave) entradaClave.value = ''; };
+
     $('#form-alta').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nombre = $('#entrada-negocio').value.trim();
-      const claveAdminIngresada = ($('#entrada-alta-clave-admin')?.value || '').trim();
-      const claveAdminEsperada = CONFIG.CLAVE_ADMIN;
+      const claveAdmin = (entradaClave?.value || '').trim();
 
       if (!nombre) return;
 
       pintar($('#error-alta'), []);
 
-      // Comprobación local: solo evita una ida y vuelta al backend cuando la
-      // clave está obviamente mal. La que autoriza de verdad es la del servidor
-      // (`exigirClaveDeAlta_`), porque esta corre en el navegador del usuario y
-      // se saltea desde la consola en dos segundos.
-      if (claveAdminEsperada && claveAdminIngresada !== claveAdminEsperada) {
-        pintar($('#error-alta'), UI.aviso('Clave de administrador incorrecta. Solo el administrador puede autorizar la apertura de una nueva agenda.'));
-        return;
-      }
-
+      // La clave NO se compara acá. La única comparación vive en el backend
+      // (`exigirClaveDeAlta_`): para validarla en el navegador habría que
+      // publicarla en config.js, que es exactamente lo que no se quiere —
+      // quedaría legible para cualquiera que abra el código de la página.
       await conCarga($('#btn-alta'), async () => {
         try {
           const api = await dueno();
-          await api.registrarCuenta(tipo, nombre, claveAdminIngresada);
+          await api.registrarCuenta(tipo, nombre, claveAdmin);
+          olvidarClave();
           estado.perfil = await api.getPerfilCuenta();
           await recargarNegocio();
           abrirPanel();
           tostada('¡Listo! Tu agenda ya está publicada.', 'exito');
         } catch (err) {
+          olvidarClave();
           pintar($('#error-alta'), UI.aviso(mensajeDeError(err)));
         }
       });

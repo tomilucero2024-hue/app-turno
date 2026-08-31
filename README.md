@@ -81,7 +81,7 @@ No hay dependencias: son dos scripts de Node.
 
 1. Crear un proyecto en [Firebase](https://console.firebase.google.com).
 2. Authentication → habilitar **Correo/contraseña** y **Google**.
-3. Authentication → Settings → **User actions** → destildar **Enable create (sign-up)**. Esto cierra el registro público: nadie puede darse de alta solo, las cuentas las crea el administrador. Ver [Dar de alta un negocio](#dar-de-alta-un-negocio).
+3. Dejar **habilitado** el registro (Authentication → Settings → *User actions* → **Enable create**). Es el valor de fábrica y hay que respetarlo: el ingreso con Google crea el usuario la primera vez, así que cerrarlo deja afuera a todo negocio nuevo. Autenticarse no da acceso a nada por sí solo — ver [Dar de alta un negocio](#dar-de-alta-un-negocio).
 4. Anotar la **Web API Key** y el **Project ID** (Configuración del proyecto).
 5. Authentication → Settings → **Dominios autorizados**: agregar el dominio propio. De fábrica solo vienen `localhost` y los dos de Firebase, así que cualquier otro origen —el dominio de producción, o la IP de la PC en la red local para probar desde el celular— falla con `auth/unauthorized-domain`. El campo acepta también direcciones IP, pero conviene tratarlas como algo temporal: el router puede asignar otra.
 
@@ -125,9 +125,11 @@ Las dos mitades van juntas: con `TURNSTILE_SECRET` cargado y sin *site key* en e
 
 ### Clave de alta
 
-`CLAVE_ALTA_ADMIN` es lo que impide que alguien con sesión de Firebase abra una agenda: el backend la exige en `registrarCuenta` antes de crear nada. Con la propiedad vacía, el alta queda abierta.
+`CLAVE_ALTA_ADMIN` es la clave maestra que autoriza abrir una agenda. El backend la exige en `registrarCuenta` antes de crear nada, y es el **único** lugar donde se compara.
 
-`CONFIG.CLAVE_ADMIN`, en `frontend/js/config.js`, es un espejo opcional de esa clave que sirve para mostrar el error sin ir al servidor. **No protege nada**: `config.js` se descarga en el navegador de cualquier visitante, así que la clave queda a la vista y la comparación se saltea desde la consola. Se puede dejar vacía; si se completa, tiene que coincidir con la del script.
+No tiene espejo en el frontend, a propósito. `frontend/js/config.js` se descarga entero en el navegador de cualquier visitante: una copia de la clave ahí quedaría legible en el código de la página, y el barbero que la lee una vez podría abrir todas las agendas que quisiera. Por eso la validación local se sacó del panel — el error llega del servidor.
+
+Con la propiedad vacía, el alta queda abierta a cualquiera que inicie sesión.
 
 ### 4. Frontend
 
@@ -139,25 +141,20 @@ Publicado en GitHub Pages, hay que agregar el dominio (`usuario.github.io`) en F
 
 ## Dar de alta un negocio
 
-No hay registro autoservicio. El registro público está cerrado en Firebase y la clave maestra la tiene solo el administrador, así que cada negocio entra porque el administrador lo dio de alta. Son dos cosas separadas y las dos las hace él:
+Cada barbería **se crea y organiza su propia agenda**. Lo único que aporta el administrador es la clave maestra, que escribe **presencialmente** en el dispositivo del dueño en el momento del alta. La clave no se manda por mensaje ni se le entrega a nadie.
 
-**Crear el usuario** (una vez por negocio):
+El alta es un solo momento, con los dos presentes:
 
-1. Consola de Firebase → **Authentication** → pestaña **Users** → **Add user**.
-2. Cargar el correo del dueño de la barbería y una contraseña provisoria.
+1. El dueño abre `panel.html` **en su propio celular** y toca **Continuar con Google**. Si es la primera vez, Firebase le crea el usuario ahí mismo; no hay formulario de registro ni contraseña que recordar.
+2. Como todavía no tiene negocio, el panel le muestra **Creá tu agenda**. Él carga el nombre del negocio y elige si trabaja solo o con equipo.
+3. El administrador escribe **su clave maestra** en el campo correspondiente, en ese celular, y se envía el formulario.
+4. Se crea la planilla del negocio, su slug y un profesional por defecto. El panel se abre y el dueño ya puede copiar su link de reservas.
 
-Esto crea la credencial pero todavía no existe ninguna agenda: si el dueño entrara ahora, vería la pantalla de "Creá tu agenda" y no podría pasar de ahí, porque no tiene la clave maestra.
+A partir de ahí el dueño sigue solo: carga sus servicios, su equipo, sus horarios y sus bloqueos. La sesión de Google le queda guardada en el celular, así que las próximas veces entra directo.
 
-**Crear la agenda** (el administrador, con la contraseña provisoria que acaba de poner):
+**La clave no queda en el dispositivo.** El campo lleva `autocomplete="off"` para que el navegador no ofrezca guardarla, y el panel la borra del formulario apenas se envía, tanto si el alta salió bien como si falló.
 
-3. Entrar a `panel.html` con ese correo y esa contraseña.
-4. Aparece la pantalla **Creá tu agenda**. Cargar el nombre del negocio, elegir si trabaja solo o con equipo, y escribir la **clave maestra** — la misma que está en `CLAVE_ALTA_ADMIN`.
-5. Al confirmar se crea la planilla del negocio, su slug y un profesional por defecto.
-6. Copiar el link de reservas desde el panel y pasárselo al dueño junto con el correo y la contraseña provisoria.
-
-**Entrega**: el dueño entra con esas credenciales y, si quiere, cambia la contraseña con "Olvidé mi contraseña", que le manda un correo de reinicio. La clave maestra nunca sale del administrador: el dueño no la necesita para nada, porque el alta ya está hecha.
-
-Si alguien que no fue dado de alta intenta entrar, Firebase responde `auth/admin-restricted-operation` y el panel le muestra que las cuentas las crea el administrador.
+**Qué pasa si alguien entra por su cuenta.** Puede autenticarse con Google —eso está abierto— pero se queda en la pantalla de "Creá tu agenda" sin poder pasar, porque no tiene la clave. No accede a ningún dato de nadie: el backend resuelve el negocio a partir del token verificado, nunca de algo que mande el navegador.
 
 ## Contrato de la API
 

@@ -105,9 +105,10 @@
         <p class="apagado">Gestioná turnos, servicios, equipo y horarios desde un solo lugar.</p>
       </div>
 
-      <!-- No hay pestaña de "Crear cuenta": el registro está deshabilitado en
-           Firebase y las cuentas las da de alta el administrador. Dejar el botón
-           acá solo llevaría a un error que el usuario no puede resolver. -->
+      <!-- No hay pestaña de "Crear cuenta" porque no hace falta: entrar con Google
+           crea el usuario solo la primera vez. Y no se pide ninguna clave acá,
+           porque autenticarse no da acceso a nada: la clave maestra se pide
+           recién al crear la agenda, que es lo que el backend valida. -->
       <div class="tarjeta pila">
         <form class="pila" id="form-ingreso" autocomplete="on">
           <div class="campo">
@@ -135,7 +136,7 @@
         </button>
       </div>
 
-      <p class="centrado chico tenue">El acceso al panel lo da el administrador. ¿Sos cliente y querés reservar? <a href="index.html">Buscá tu barbería</a>.</p>
+      <p class="centrado chico tenue">¿Sos cliente y querés reservar? <a href="index.html">Buscá tu barbería</a>.</p>
     </div>
   </section>
 
@@ -145,7 +146,7 @@
       <div class="pila pila--sm centrado">
         <p class="eyebrow">Último paso</p>
         <h1>Creá tu agenda</h1>
-        <p class="apagado">Con esto se genera la planilla y el link que el negocio va a compartir con sus clientes. Lo completa el administrador con su clave maestra.</p>
+        <p class="apagado">Con esto se genera tu planilla y el link que vas a compartir con tus clientes.</p>
       </div>
 
       <form class="tarjeta pila" id="form-alta">
@@ -155,11 +156,17 @@
         </div>
         <div class="campo">
           <label class="campo__etiqueta" for="entrada-alta-clave-admin">Clave de Administrador</label>
-          <!-- Sin `required`: quien decide si hace falta es el backend, según tenga
-               o no cargada la propiedad CLAVE_ALTA_ADMIN. Si la exige y falta,
-               devuelve el error con su propio mensaje. -->
-          <input class="entrada" id="entrada-alta-clave-admin" type="password" placeholder="Clave maestra para autorizar el alta">
-          <span class="campo__ayuda">Solo el administrador puede autorizar la apertura de una nueva agenda.</span>
+          <!-- `autocomplete="off"` importa acá más que en cualquier otro campo: esta
+               clave la escribe el administrador en el dispositivo del barbero, y
+               sin esto el navegador ofrece guardarla. El JS además la borra
+               apenas se envía el formulario.
+
+               Sin `required`: quien decide si hace falta es el backend, según
+               tenga o no cargada la propiedad CLAVE_ALTA_ADMIN. -->
+          <input class="entrada" id="entrada-alta-clave-admin" type="password"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                 placeholder="La escribe el administrador">
+          <span class="campo__ayuda">Pedísela al administrador: la escribe él y no queda guardada.</span>
         </div>
         <div class="campo">
           <span class="campo__etiqueta">¿Cómo trabajás?</span>
