@@ -105,12 +105,10 @@
         <p class="apagado">Gestioná turnos, servicios, equipo y horarios desde un solo lugar.</p>
       </div>
 
+      <!-- No hay pestaña de "Crear cuenta": el registro está deshabilitado en
+           Firebase y las cuentas las da de alta el administrador. Dejar el botón
+           acá solo llevaría a un error que el usuario no puede resolver. -->
       <div class="tarjeta pila">
-        <div class="nav-pildora" role="tablist" id="tabs-ingreso">
-          <button class="nav-pildora__item" type="button" role="tab" data-modo="ingresar" aria-selected="true">Ingresar</button>
-          <button class="nav-pildora__item" type="button" role="tab" data-modo="crear" aria-selected="false">Crear cuenta</button>
-        </div>
-
         <form class="pila" id="form-ingreso" autocomplete="on">
           <div class="campo">
             <label class="campo__etiqueta" for="entrada-email">Correo</label>
@@ -119,11 +117,6 @@
           <div class="campo">
             <label class="campo__etiqueta" for="entrada-clave">Contraseña</label>
             <input class="entrada" id="entrada-clave" type="password" autocomplete="current-password" required minlength="6" placeholder="Mínimo 6 caracteres">
-          </div>
-          <div class="campo oculto" id="campo-clave-admin">
-            <label class="campo__etiqueta" for="entrada-clave-admin">Clave de Administrador</label>
-            <input class="entrada" id="entrada-clave-admin" type="password" placeholder="Tu clave maestra para dar de alta">
-            <span class="campo__ayuda">Solo requerida para crear nuevas cuentas.</span>
           </div>
           <div id="error-ingreso"></div>
           <button class="boton boton--primario boton--bloque" type="submit" id="btn-ingresar">Ingresar</button>
@@ -142,7 +135,7 @@
         </button>
       </div>
 
-      <p class="centrado chico tenue">¿Sos cliente y querés reservar? <a href="index.html">Buscá tu barbería</a>.</p>
+      <p class="centrado chico tenue">El acceso al panel lo da el administrador. ¿Sos cliente y querés reservar? <a href="index.html">Buscá tu barbería</a>.</p>
     </div>
   </section>
 
@@ -152,7 +145,7 @@
       <div class="pila pila--sm centrado">
         <p class="eyebrow">Último paso</p>
         <h1>Creá tu agenda</h1>
-        <p class="apagado">Con esto se genera tu planilla y el link que vas a compartir con tus clientes.</p>
+        <p class="apagado">Con esto se genera la planilla y el link que el negocio va a compartir con sus clientes. Lo completa el administrador con su clave maestra.</p>
       </div>
 
       <form class="tarjeta pila" id="form-alta">

@@ -99,10 +99,6 @@
       abrirPanel();
     } catch (err) {
       if (err.codigo === 'SIN_CUENTA') {
-        const claveGuardada = sessionStorage.getItem('clave_admin_valida');
-        if (claveGuardada && $('#entrada-alta-clave-admin')) {
-          $('#entrada-alta-clave-admin').value = claveGuardada;
-        }
         mostrarVista('alta');
         return;
       }
@@ -111,33 +107,17 @@
     }
   }
 
+  /**
+   * Pantalla de ingreso.
+   *
+   * No hay registro: el alta de usuarios está deshabilitada en Firebase y las
+   * cuentas las crea el administrador a mano. Esta pantalla solo autentica a
+   * alguien que ya existe. Si un desconocido prueba con su correo, Firebase
+   * responde `auth/admin-restricted-operation` y `Auth.mensajeDeError` lo
+   * traduce a que pida acceso al administrador.
+   */
   function prepararIngreso() {
-    let modo = 'ingresar';
-
-    const tabBotones = UI.$$('#tabs-ingreso [data-modo]');
     const btnSubmit = $('#btn-ingresar');
-    const btnOlvide = $('#btn-olvide');
-    const campoClaveAdmin = $('#campo-clave-admin');
-    const entradaClaveAdmin = $('#entrada-clave-admin');
-
-    tabBotones.forEach((boton) => {
-      boton.addEventListener('click', () => {
-        modo = boton.dataset.modo;
-        tabBotones.forEach((b) => b.setAttribute('aria-selected', String(b === boton)));
-        if (modo === 'crear') {
-          btnSubmit.textContent = 'Crear cuenta';
-          btnOlvide.classList.add('oculto');
-          campoClaveAdmin?.classList.remove('oculto');
-          if (entradaClaveAdmin) entradaClaveAdmin.required = Boolean(CONFIG.CLAVE_ADMIN);
-        } else {
-          btnSubmit.textContent = 'Ingresar';
-          btnOlvide.classList.remove('oculto');
-          campoClaveAdmin?.classList.add('oculto');
-          if (entradaClaveAdmin) entradaClaveAdmin.required = false;
-        }
-        pintar($('#error-ingreso'), []);
-      });
-    });
 
     $('#form-ingreso').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -147,28 +127,9 @@
 
       pintar($('#error-ingreso'), []);
 
-      if (modo === 'crear') {
-        const claveAdminIngresada = (entradaClaveAdmin?.value || '').trim();
-        const claveAdminEsperada = CONFIG.CLAVE_ADMIN;
-        if (claveAdminEsperada && claveAdminIngresada !== claveAdminEsperada) {
-          pintar($('#error-ingreso'), UI.aviso('Clave de administrador incorrecta. Solo el administrador puede autorizar nuevas cuentas.'));
-          return;
-        }
-      }
-
-      if (modo === 'crear') {
-        try {
-          sessionStorage.setItem('clave_admin_valida', (entradaClaveAdmin?.value || '').trim());
-        } catch (err) {}
-      }
-
       await conCarga(btnSubmit, async () => {
         try {
-          if (modo === 'crear') {
-            await Auth.crearConEmail(email, clave);
-          } else {
-            await Auth.ingresarConEmail(email, clave);
-          }
+          await Auth.ingresarConEmail(email, clave);
         } catch (err) {
           pintar($('#error-ingreso'), UI.aviso(Auth.mensajeDeError(err)));
         }
@@ -177,20 +138,6 @@
 
     $('#btn-google').addEventListener('click', async () => {
       pintar($('#error-ingreso'), []);
-
-      if (modo === 'crear') {
-        const claveAdminIngresada = (entradaClaveAdmin?.value || '').trim();
-        const claveAdminEsperada = CONFIG.CLAVE_ADMIN;
-        if (claveAdminEsperada && claveAdminIngresada !== claveAdminEsperada) {
-          pintar($('#error-ingreso'), UI.aviso('Ingresá la clave de administrador correcta arriba antes de continuar con Google.'));
-          entradaClaveAdmin?.focus();
-          return;
-        }
-        try {
-          sessionStorage.setItem('clave_admin_valida', claveAdminIngresada);
-        } catch (e) {}
-      }
-
       await conCarga($('#btn-google'), async () => {
         try {
           await Auth.ingresarConGoogle();

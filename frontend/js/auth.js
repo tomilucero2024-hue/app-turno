@@ -2,6 +2,10 @@
  * Autenticación con Firebase, envuelta para que el resto del panel no dependa
  * del SDK.
  *
+ * No hay registro: el alta de usuarios está deshabilitada en la consola de
+ * Firebase y las cuentas las crea el administrador a mano, así que este módulo
+ * solo autentica gente que ya existe. Por eso no expone `crearConEmail`.
+ *
  * El ID token NUNCA se guarda en localStorage: se pide con `getIdToken()` en
  * cada llamada al backend y vive solo en memoria. El SDK ya persiste su propio
  * refresh token en IndexedDB, que es donde corresponde; copiar el ID token a
@@ -41,7 +45,10 @@ const Auth = (() => {
     'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase. Agregalo en Authentication → Settings → Dominios autorizados.',
     'auth/operation-not-supported-in-this-environment': 'Este navegador no admite esa forma de ingreso. Probá con el correo y la contraseña.',
     'auth/operation-not-allowed': 'Ese método de ingreso no está habilitado en Firebase.',
-    'auth/admin-restricted-operation': 'Este correo no está habilitado en el sistema. Contactá al administrador para solicitar acceso.'
+    // El registro público está deshabilitado a propósito: las cuentas las crea
+    // el administrador. Firebase devuelve este código a cualquiera que intente
+    // entrar con un correo que no dio de alta todavía.
+    'auth/admin-restricted-operation': 'Este correo no tiene acceso al panel. Las cuentas las crea el administrador: pedile que te dé de alta.'
   };
 
   function mensajeDeError(err) {
@@ -71,9 +78,6 @@ const Auth = (() => {
 
   const ingresarConEmail = (email, clave) =>
     firebase.auth().signInWithEmailAndPassword(email, clave);
-
-  const crearConEmail = (email, clave) =>
-    firebase.auth().createUserWithEmailAndPassword(email, clave);
 
   /**
    * Ingreso con Google.
@@ -113,6 +117,6 @@ const Auth = (() => {
 
   return {
     alCambiar, usuario, token, mensajeDeError, resultadoRedireccion,
-    ingresarConEmail, crearConEmail, ingresarConGoogle, recuperarClave, salir
+    ingresarConEmail, ingresarConGoogle, recuperarClave, salir
   };
 })();
