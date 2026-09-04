@@ -181,4 +181,67 @@ fs.readdirSync(dirCss).filter((f) => f.endsWith('.css')).forEach((archivo) => {
 });
 console.log('  ok  las hojas de estilo tienen las llaves balanceadas');
 
+// 8. El Service Worker guarda los documentos sin la query
+//
+// La pantalla del cliente se abre siempre como `index.html?n=barberia`. Sin
+// normalizar la clave, el caché junta una copia del mismo HTML por cada negocio
+// que el dispositivo visitó. La query de un recurso que no es documento, en
+// cambio, sí puede identificar archivos distintos y tiene que conservarse.
+const swCode = fs.readFileSync(path.join(dirFrontend, 'sw.js'), 'utf-8');
+const sandboxSw = {
+  URL,
+  self: { addEventListener: () => {}, location: { origin: 'https://ejemplo.test' }, skipWaiting: () => {}, clients: { claim: () => {} } },
+  caches: { open: () => Promise.resolve({ put: () => {} }), keys: () => Promise.resolve([]), match: () => Promise.resolve(null), delete: () => Promise.resolve(true) },
+  fetch: () => Promise.resolve(null),
+  Promise
+};
+vm.createContext(sandboxSw);
+const claveDeCache = vm.runInContext(swCode + '\n;claveDeCache;', sandboxSw);
+
+const pedido = (url, extra = {}) => Object.assign({ url, mode: 'no-cors', destination: '' }, extra);
+
+assert.strictEqual(
+  claveDeCache(pedido('https://ejemplo.test/index.html?n=barberia-central', { mode: 'navigate', destination: 'document' })),
+  'https://ejemplo.test/index.html',
+  'Un documento con ?n=slug tiene que guardarse sin la query');
+
+assert.strictEqual(
+  claveDeCache(pedido('https://ejemplo.test/panel.html?x=1')),
+  'https://ejemplo.test/panel.html',
+  'El .html se reconoce por la extensión aunque no venga marcado como documento');
+
+const sinQuery = pedido('https://ejemplo.test/index.html', { mode: 'navigate' });
+assert.strictEqual(claveDeCache(sinQuery), sinQuery,
+  'Sin query se guarda la petición tal cual, sin construir una clave nueva');
+
+const conVersion = pedido('https://ejemplo.test/css/estilo.css?v=2', { destination: 'style' });
+assert.strictEqual(claveDeCache(conVersion), conVersion,
+  'Lo que no es documento conserva la query: ahí puede distinguir archivos distintos');
+console.log('  ok  el Service Worker no acumula una copia del HTML por cada negocio');
+
+// 9. Las dos mitades de Turnstile se comparan en algún lado
+//
+// Con `TURNSTILE_SECRET` cargado en el backend y sin site key en el frontend,
+// toda reserva muere en VERIFICACION_FALLIDA recién cuando el cliente ya
+// completó el formulario entero. Ninguna de las dos puntas ve a la otra, así
+// que el backend publica el dato y la pantalla de reserva lo compara. Si
+// cualquiera de las dos mitades se cae, el desajuste vuelve a ser invisible.
+const endpointsPublicos = fs.readFileSync(
+  path.join(__dirname, '..', 'backend', '10_EndpointsPublicos.js'), 'utf-8');
+assert.ok(/requiere_turnstile\s*=\s*!!secretoTurnstile_\(\)/.test(endpointsPublicos),
+  'getNegocio tiene que publicar requiere_turnstile a partir del secreto');
+
+const reservaJs = fs.readFileSync(path.join(dirFrontend, 'js', 'reserva.js'), 'utf-8');
+assert.ok(/faltaVerificacion\s*=\s*\(\)\s*=>/.test(reservaJs),
+  'reserva.js tiene que definir faltaVerificacion()');
+assert.ok(/requiere_turnstile/.test(reservaJs) && /TURNSTILE_SITE_KEY/.test(reservaJs),
+  'faltaVerificacion tiene que comparar las dos mitades');
+assert.ok(/!faltaVerificacion\(\)\s*&&/.test(reservaJs),
+  'datosCompletos tiene que cortar el botón cuando falta la verificación');
+
+const configJs = fs.readFileSync(path.join(dirFrontend, 'js', 'config.js'), 'utf-8');
+assert.ok(/TURNSTILE_SITE_KEY\s*:/.test(configJs),
+  'config.js tiene que seguir teniendo la clave TURNSTILE_SITE_KEY, aunque esté vacía');
+console.log('  ok  el desajuste de Turnstile se detecta antes de llegar a la reserva');
+
 console.log('\nTodos los tests de UI y Frontend pasaron satisfactoriamente.\n');

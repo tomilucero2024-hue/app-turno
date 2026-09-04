@@ -51,6 +51,14 @@ function verificarInstalacion() {
   if (!props.TURNSTILE_SECRET) {
     problemas.push('AVISO: sin TURNSTILE_SECRET la verificación anti-spam queda desactivada. ' +
       'Aceptable en desarrollo, no en producción.');
+  } else {
+    // La otra mitad vive en el frontend y desde acá no se puede leer, así que
+    // lo único posible es recordarlo. Con el secreto cargado y sin site key,
+    // toda reserva falla con VERIFICACION_FALLIDA; desde esta versión la
+    // pantalla de reserva lo detecta y lo avisa en vez de dejarlo pasar.
+    problemas.push('AVISO: TURNSTILE_SECRET está cargado. Verificá que ' +
+      'TURNSTILE_SITE_KEY también esté en frontend/js/config.js: las dos mitades van ' +
+      'juntas o ninguna.');
   }
   if (!props.CLAVE_ALTA_ADMIN) {
     problemas.push('AVISO: sin CLAVE_ALTA_ADMIN cualquiera que se registre en Firebase puede ' +

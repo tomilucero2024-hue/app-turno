@@ -6,9 +6,31 @@
  * reservó cada horario ocupado.
  */
 
-/** Datos públicos de un negocio a partir de su slug. */
+/**
+ * Datos públicos de un negocio a partir de su slug.
+ *
+ * `requiere_turnstile` se agrega acá y NO dentro de `datosDeNegocio_` por dos
+ * razones: sale de una propiedad del script y no de la planilla, y ese objeto
+ * se cachea — guardarlo adentro haría que un cambio del secreto tarde hasta
+ * que venza la caché en notarse.
+ *
+ * Lo usa la pantalla de reserva para detectar el único desajuste de
+ * configuración que no se ve hasta que es tarde: con `TURNSTILE_SECRET`
+ * cargado y sin site key en `config.js`, no hay token que mandar y toda
+ * reserva muere en `VERIFICACION_FALLIDA` recién cuando el cliente ya completó
+ * el formulario entero. No revela nada: que el sitio usa captcha ya se ve en
+ * el widget.
+ */
 function epGetNegocio_(params) {
-  return ok_(datosDeNegocio_(cuentaPorSlug_(params.slug)));
+  var datos = datosDeNegocio_(cuentaPorSlug_(params.slug));
+
+  var salida = {};
+  for (var clave in datos) {
+    if (Object.prototype.hasOwnProperty.call(datos, clave)) salida[clave] = datos[clave];
+  }
+  salida.requiere_turnstile = !!secretoTurnstile_();
+
+  return ok_(salida);
 }
 
 /**

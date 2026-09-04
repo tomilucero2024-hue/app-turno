@@ -16,7 +16,8 @@ La arquitectura completa, con las decisiones y sus motivos, está en [`docs/arqu
 | Cliente de API del frontend | ✅ Completo |
 | Pantalla de reserva del cliente (Combos, Calendario, .ics, PWA) | ✅ Completo |
 | Dashboard del dueño (Buscador, Filtros, CSV, Perfil, Módulos) | ✅ Completo |
-| Despliegue y conexión con el backend | ⬜ Pendiente |
+| Modo demo local, sin Firebase ni planilla | ✅ `npm run demo` |
+| Despliegue y conexión con el backend | ✅ Publicado |
 
 ## Estructura
 
@@ -56,6 +57,10 @@ frontend/    Sitio estático + PWA. Sin build, sin dependencias: se abre tal cua
   js/panel-ajustes.js     Módulo de perfil comercial, buffer de turnos y archivado
   js/panel.js             Orquestador central del panel y autenticación
 
+demo/        Modo demo del servidor local. No se publica ni se despliega.
+  backend-simulado.js     Backend en memoria con el mismo contrato que Apps Script
+  auth-simulado.js        Sesión falsa que reemplaza a auth.js solo en modo demo
+
 tests/                    Tests en Node, sin dependencias
 docs/                     Documento de arquitectura
 ```
@@ -70,12 +75,13 @@ Apps Script evalúa los archivos en orden alfabético dentro de un único ámbit
 npm test
 ```
 
-No hay dependencias: son cuatro scripts de Node.
+No hay dependencias: son cinco scripts de Node.
 
 - `tests/disponibilidad.test.js` prueba el cálculo de horarios (grilla, horario partido, solapamientos, bloqueos, antelación mínima). Es posible porque `02_Disponibilidad.js` no toca ningún servicio de Apps Script.
 - `tests/router.test.js` carga todo el backend en un sandbox con los servicios de Google simulados y verifica que el proyecto compile, que el router resuelva todos sus handlers y que ningún camino de error rompa el contrato `{ok, data|error}`.
 - `tests/clave_alta.test.js` cubre la clave que autoriza abrir una agenda: qué se rechaza, el vale de un solo uso, el límite de intentos y que la clave no aparezca ni en las respuestas ni en el frontend. Es el único secreto que se compara en un endpoint sin autenticar, y un error ahí no rompe nada visible — solo deja el alta abierta.
-- `tests/ui_helpers.test.js` prueba los helpers del frontend que se pueden correr fuera del navegador: exportación a `.ics` y CSV, links de Google Calendar y la máscara de teléfono.
+- `tests/ui_helpers.test.js` prueba los helpers del frontend que se pueden correr fuera del navegador: exportación a `.ics` y CSV, links de Google Calendar, la máscara de teléfono, la clave de caché del Service Worker y que las dos mitades del chequeo de Turnstile sigan conectadas.
+- `tests/demo.test.js` verifica que el backend simulado del modo demo respete el contrato del real: mismas acciones en el mismo método HTTP, mismos códigos de error, y la lógica de reserva —margen, combos, lista negra, doble reserva— comportándose igual. Un backend de mentira que responde distinto es peor que no tenerlo.
 
 ## Puesta en marcha
 
@@ -86,6 +92,12 @@ No hay dependencias: son cuatro scripts de Node.
 3. Dejar **habilitado** el registro (Authentication → Settings → *User actions* → **Enable create**). Es el valor de fábrica y hay que respetarlo: el ingreso con Google crea el usuario la primera vez, así que cerrarlo deja afuera a todo negocio nuevo. Autenticarse no da acceso a nada por sí solo — ver [Dar de alta un negocio](#dar-de-alta-un-negocio).
 4. Anotar la **Web API Key** y el **Project ID** (Configuración del proyecto).
 5. Authentication → Settings → **Dominios autorizados**: agregar el dominio propio. De fábrica solo vienen `localhost` y los dos de Firebase, así que cualquier otro origen —el dominio de producción, o la IP de la PC en la red local para probar desde el celular— falla con `auth/unauthorized-domain`. El campo acepta también direcciones IP, pero conviene tratarlas como algo temporal: el router puede asignar otra.
+
+   `localhost` viene de fábrica pero se puede borrar, y entonces el ingreso con Google deja de andar **solo en desarrollo**, con producción intacta: es un síntoma fácil de atribuir al código. La lista efectiva se puede leer sin abrir la consola, porque es pública:
+
+   ```bash
+   curl -s "https://identitytoolkit.googleapis.com/v1/projects?key=TU_WEB_API_KEY"
+   ```
 
 ### 2. Apps Script
 
@@ -125,6 +137,8 @@ Es la capa anti-abuso principal: Apps Script no expone la IP del cliente, así q
 
 Las dos mitades van juntas: con `TURNSTILE_SECRET` cargado y sin *site key* en el frontend, toda reserva falla con `VERIFICACION_FALLIDA`; con las dos vacías la verificación queda desactivada, que es lo cómodo para desarrollar y lo inaceptable para publicar.
 
+Ese desajuste no se puede detectar desde ningún lado por separado —el backend no ve `config.js` y el frontend no ve el secreto— así que `getNegocio` devuelve `requiere_turnstile` y la pantalla de reserva compara las dos mitades al abrir. Si faltan, avisa arriba de todo y no habilita el botón, en vez de dejar que el cliente elija servicio, profesional, día, hora, escriba sus datos y recién ahí choque contra el error. `verificarInstalacion()` lo recuerda del lado del backend.
+
 ### Clave de alta
 
 `CLAVE_ALTA_ADMIN` es la clave maestra que autoriza abrir una agenda, y el backend es el **único** lugar donde se compara. Dos endpoints la consultan: `verificarClaveAlta`, que la valida al principio del alta y devuelve un vale de un solo uso, y `registrarCuenta`, que exige ese vale o la clave antes de crear nada.
@@ -139,7 +153,26 @@ Con la propiedad vacía, el alta queda abierta a cualquiera que inicie sesión.
 
 Cargar en `frontend/js/config.js` la URL `/exec` del deployment y los datos web de Firebase (`apiKey`, `authDomain`, `projectId`). Es el único archivo que hay que tocar: `api.js` lee la URL de ahí.
 
-Para probarlo en local alcanza con un servidor estático — `python -m http.server 4173 --directory frontend` — y abrir `http://localhost:4173`. Abrir el `index.html` con doble clic no sirve: bajo `file://` el navegador bloquea las llamadas al backend.
+Para probarlo en local alcanza con `npm start`, que sirve `frontend/` en `http://localhost:3000`. Abrir el `index.html` con doble clic no sirve: bajo `file://` el navegador bloquea las llamadas al backend.
+
+### Modo demo
+
+```bash
+npm run demo
+```
+
+Levanta lo mismo en `http://localhost:4000`, pero además con un backend simulado en memoria. Sirve para recorrer la aplicación entera sin Firebase, sin planilla y sin tener ningún negocio dado de alta — que es el estado en el que está una máquina recién clonada, y en el que `npm start` no muestra más que la pantalla de "Buscá tu barbería".
+
+Trae un negocio de ejemplo con el slug `demo`: dos profesionales con horarios distintos, cuatro servicios, turnos en varios estados, un bloqueo y un teléfono en la lista negra. El panel entra con cualquier correo, o con el botón de Google. Todo vive en memoria y se reinicia con el servidor.
+
+Dos cosas que lo mantienen honesto y no de adorno:
+
+- **La disponibilidad la calcula `02_Disponibilidad.js`**, el mismo archivo que corre en producción. El horario partido, el margen entre turnos, la antelación mínima y los bloqueos se comportan de verdad. Una lista de horarios inventada se vería igual de bien y no probaría nada.
+- **Los errores llevan los mismos códigos** (`SLOT_OCUPADO`, `NO_ENCONTRADO`, `TELEFONO_BLOQUEADO`…), así que una pantalla que ramifica por código se ve acá como se va a ver publicada.
+
+No modifica ningún archivo: intercambia al vuelo las respuestas de `js/config.js` (para apuntar `URL_BACKEND` al `/exec` local), de `js/auth.js` (por una sesión simulada, porque entrar de verdad pide Firebase con `localhost` autorizado y una cuenta ya creada) y de `sw.js` (para que el caché del modo demo no se mezcle con el del modo normal en el mismo origen). El disco queda intacto — un modo de prueba que edita los archivos de producción tarde o temprano se commitea sin querer.
+
+Con `DEMO_TURNSTILE=1` el backend simulado exige la verificación anti-spam, que es la forma de ver el aviso de configuración incompleta descrito más arriba. Con `DEMO_LATENCIA` se ajustan los milisegundos que tarda cada respuesta: por defecto 250, para que los esqueletos de carga se vean; con `0` responde al instante.
 
 Publicado en GitHub Pages, hay que agregar el dominio (`usuario.github.io`) en Firebase → Authentication → Settings → Dominios autorizados, o el ingreso con Google falla solo en producción.
 

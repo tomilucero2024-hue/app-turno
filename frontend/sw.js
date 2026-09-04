@@ -18,7 +18,7 @@
  * origen antes de decidir cualquier estrategia.
  */
 
-const CACHE_NAME = 'app-turno-cache-v8';
+const CACHE_NAME = 'app-turno-cache-v9';
 
 const RECURSOS_ESTATICOS = [
   './',
@@ -87,10 +87,34 @@ function esCodigoDeLaApp(peticion, url) {
     url.pathname.endsWith('.css');
 }
 
+/**
+ * Con qué clave se guarda una respuesta.
+ *
+ * La pantalla del cliente se abre siempre como `index.html?n=barberia`. Si esa
+ * URL se guardara tal cual, el caché juntaría una copia del mismo HTML por cada
+ * negocio que el dispositivo visitó, y ninguna sería la que `buscarEnCache`
+ * encuentra primero — todas terminan resolviéndose por el `ignoreSearch` de
+ * abajo, que devuelve cualquiera de ellas.
+ *
+ * Los documentos se guardan entonces sin la query, que para ellos es un dato
+ * del negocio y no del recurso. El resto conserva la URL entera: ahí la query
+ * sí puede distinguir archivos distintos.
+ */
+function claveDeCache(peticion) {
+  const url = new URL(peticion.url);
+  if (!url.search) return peticion;
+
+  const esDocumento = peticion.mode === 'navigate' ||
+    peticion.destination === 'document' ||
+    url.pathname.endsWith('.html');
+
+  return esDocumento ? url.origin + url.pathname : peticion;
+}
+
 function guardarEnCache(peticion, respuesta) {
   if (!respuesta || respuesta.status !== 200 || respuesta.type !== 'basic') return respuesta;
   const clon = respuesta.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(peticion, clon));
+  caches.open(CACHE_NAME).then((cache) => cache.put(claveDeCache(peticion), clon));
   return respuesta;
 }
 

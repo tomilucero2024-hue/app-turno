@@ -93,8 +93,35 @@
   // Encabezado y pasos
   // ==========================================================================
 
+  /**
+   * El backend exige Turnstile y este frontend no tiene la site key cargada.
+   *
+   * Es un desajuste de configuración, no un error de quien reserva: sin site
+   * key no hay token que mandar, así que `crearTurno` termina siempre en
+   * VERIFICACION_FALLIDA — pero recién después de que la persona eligió
+   * servicio, profesional, día, hora y escribió sus datos. Detectarlo al abrir
+   * la página convierte ese fondo de pozo en un aviso arriba de todo.
+   */
+  const faltaVerificacion = () =>
+    !!(estado.negocio && estado.negocio.requiere_turnstile) && !CONFIG.TURNSTILE_SITE_KEY;
+
   function pintarNegocio() {
     const n = estado.negocio;
+
+    // El aviso va donde iría el widget, que en este caso no se montó. Al
+    // cliente se le habla de lo que le sirve —que no va a poder reservar acá—
+    // y el detalle técnico queda en la consola, para quien lo tenga que
+    // arreglar.
+    if (faltaVerificacion()) {
+      pintar($('#turnstile-contenedor'), UI.aviso(
+        'La reserva online está fuera de servicio por un problema de configuración del sitio. ' +
+        'Escribile al negocio para coordinar tu turno.'));
+      console.error(
+        'CONFIGURACIÓN INCOMPLETA: el backend tiene TURNSTILE_SECRET cargado y ' +
+        'CONFIG.TURNSTILE_SITE_KEY está vacío en js/config.js. Las dos mitades van ' +
+        'juntas: cargá la site key de Cloudflare Turnstile, o vaciá el secreto en las ' +
+        'Propiedades del Script.');
+    }
 
     document.title = `Reservá tu turno · ${n.nombre_negocio}`;
     $('#marca-nombre').textContent = n.nombre_negocio;
@@ -552,6 +579,7 @@
   }
 
   const datosCompletos = () =>
+    !faltaVerificacion() &&
     !!(estado.servicios.length > 0 && estado.barbero && estado.fecha && estado.hora &&
        $('#entrada-nombre').value.trim() && $('#entrada-telefono').value.replace(/\D/g, '').length >= 6);
 
